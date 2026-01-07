@@ -12,17 +12,20 @@
   },
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
   "main": "index.js",
   "directories": {
     "doc": "docs"
   },
   "dependencies": {
     "lucide-react": "^0.373.0",
+    "@crossmarkio/sdk": "^0.4.0",
+    "dotenv": "^17.2.3",
+    "five-bells-condition": "^5.0.1",
     "next": "^15.0.0",
-    "react": "^19.0.0-rc",
+    "react": "^19.2.3",
     "react-dom": "^19.0.0-rc",
-    "xrpl": "^4.5.0"
+    "xrpl": "^4.5.0",
+    "xrpl-client": "^2.4.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
