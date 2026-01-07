@@ -18,6 +18,7 @@
     "doc": "docs"
   },
   "dependencies": {
+    "lucide-react": "^0.373.0",
     "next": "^15.0.0",
     "react": "^19.0.0-rc",
     "react-dom": "^19.0.0-rc",
@@ -27,11 +28,16 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0-rc",
     "@types/react-dom": "^19.0.0-rc",
+    "autoprefixer": "^10.4.16",
     "postcss": "^8.4",
     "tailwindcss": "^3.4",
     "typescript": "^5.6"
   },
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
