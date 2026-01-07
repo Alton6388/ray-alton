@@ -1,24 +1,59 @@
-import {Client, Wallet, EscreowCreate, EscrowFinish} from 'xrpl'
+import { Client, Wallet, EscrowCreate, EscrowFinish } from 'xrpl'
 import { getXrplClient } from './xrpl-client'
 
-const Client = getXrplClient()
-await Client.connect()
+// Initialize client
+const client = getXrplClient();
 
-const senderWallet: Wallet = Wallet.fromSeed('Fill in')
-const recipientAddress = "Fill in"
+export const createEscrow = async (senderSeed, recipientAddress, amount, condition) => {
+  try {
+    await client.connect();
+    
+    const senderWallet = Wallet.fromSeed(senderSeed);
+    
+    const escrowTransaction = {
+      TransactionType: 'EscrowCreate',
+      Account: senderWallet.address,
+      Destination: recipientAddress,
+      Amount: amount,
+      Condition: condition,
+    };
 
+    const prepared = await client.autofill(escrowTransaction);
+    const signed = senderWallet.sign(prepared);
+    const result = await client.submitAndWait(signed.tx_blob);
+    
+    await client.disconnect();
+    return result;
+  } catch (error) {
+    await client.disconnect();
+    throw error;
+  }
+};
 
-const escrowTransaction: EscrowCreate = {
-    TransactionType: 'EscrowCreate',
-    Account = senderWaller.address,
-    Destination: recipientAddress,
-    Amount: '1000000',
-    Condition: condition,
-}
+export const finishEscrow = async (senderSeed, escrowSequence, fulfillment) => {
+  try {
+    await client.connect();
+    
+    const senderWallet = Wallet.fromSeed(senderSeed);
+    
+    const finishTransaction = {
+      TransactionType: 'EscrowFinish',
+      Account: senderWallet.address,
+      OfferSequence: escrowSequence,
+      Fulfillment: fulfillment,
+    };
 
-const prepared = await client.autofill(tx)
-const signed = senderWallet.sign(prepared)
-const result = await client.submitAndWait(signed.transaction_blob)
+    const prepared = await client.autofill(finishTransaction);
+    const signed = senderWallet.sign(prepared);
+    const result = await client.submitAndWait(signed.tx_blob);
+    
+    await client.disconnect();
+    return result;
+  } catch (error) {
+    await client.disconnect();
+    throw error;
+  }
+};
 console.log('Escrow created:', result.result.meta.deliveredAmount)
 
 const escrowSequence = Number(result.result.meta.TransactionResult) === 'tesSUCCESS' 

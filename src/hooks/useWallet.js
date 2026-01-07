@@ -8,11 +8,29 @@ export function useWallet() {
 
   const connect = async () => {
     try {
-      if (typeof window.crossmark === 'undefined') {
-        alert('Please install Crossmark: https://crossmark.io');
-        return;
+      // Wait for Crossmark to be available
+      const waitForCrossmark = async (timeout = 10000) => {
+        const start = Date.now();
+        while (Date.now() - start < timeout) {
+          if (typeof window.crossmark !== 'undefined' && window.crossmark.connect) {
+            return true;
+          }
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        return false;
+      };
+
+      if (typeof window.crossmark === 'undefined' || !window.crossmark.connect) {
+        console.log('Crossmark not immediately available, waiting...');
+        const available = await waitForCrossmark();
+        
+        if (!available) {
+          alert('Crossmark extension not detected. Please install from: https://crossmark.io');
+          return;
+        }
       }
 
+      console.log('Attempting Crossmark connection...');
       const result = await window.crossmark.connect();
       
       if (result?.response?.data?.address) {
@@ -20,9 +38,13 @@ export function useWallet() {
         setAddress(userAddress);
         setIsConnected(true);
         await fetchBalance(userAddress);
+        console.log('Successfully connected to:', userAddress);
+      } else {
+        throw new Error('No address returned from Crossmark');
       }
     } catch (error) {
       console.error('Connection failed:', error);
+      alert('Connection failed: ' + error.message);
     }
   };
 

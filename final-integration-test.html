@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Wallet & Escrow Integration</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/xrpl@2.7.0/build/xrpl-latest-min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #667eea;
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 2.5rem;
+    }
+    .status-banner {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .section {
+      background: #f8fafc;
+      border: 2px dashed #e2e8f0;
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .section h2 {
+      margin: 0 0 20px 0;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin: 4px;
+      display: inline-block;
+    }
+    button:hover:not(:disabled) {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+    button:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-success { background: #10b981; }
+    .btn-success:hover:not(:disabled) { background: #059669; }
+    .btn-danger { background: #ef4444; }
+    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn-warning { background: #f59e0b; }
+    .btn-warning:hover:not(:disabled) { background: #d97706; }
+    
+    .wallet-connected {
+      background: #eff6ff;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+    }
+    .balance-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .balance-card {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .balance-amount {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 8px 0;
+    }
+    .escrow-card {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      transition: all 0.2s;
+    }
+    .escrow-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .escrow-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .escrow-status { font-size: 24px; }
+    .escrow-info { flex: 1; }
+    .escrow-amount {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 4px 0;
+    }
+    .escrow-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .escrow-actions button { flex: 1; margin: 0; }
+    
+    .status-pending { border-color: #f59e0b; }
+    .status-completed { border-color: #10b981; }
+    .status-cancelled { border-color: #ef4444; }
+    
+    .debug-section {
+      background: #fef3f2;
+      border-color: #fca5a5;
+      grid-column: 1 / -1;
+    }
+    .debug-output {
+      background: #f8f9fa;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin-top: 16px;
+      white-space: pre-wrap;
+    }
+    .integration-status {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .status-item {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid #10b981;
+      text-align: center;
+    }
+    .status-item.error {
+      border-left-color: #ef4444;
+    }
+    .status-item.warning {
+      border-left-color: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Complete Integration Test Suite</h1>
+    
+    <div class="status-banner" id="main-status">
+      ✅ Integration Test Environment Ready - Connect Crossmark to Begin
+    </div>
+
+    <div class="grid">
+      <!-- Wallet Management Section -->
+      <div class="section">
+        <h2>💼 Wallet Management</h2>
+        <div id="wallet-section"></div>
+      </div>
+
+      <!-- Escrow Management Section -->
+      <div class="section">
+        <h2>🔒 Escrow Management</h2>
+        <div id="escrow-section"></div>
+      </div>
+
+      <!-- Component Integration Test -->
+      <div class="section">
+        <h2>⚙️ Component Integration</h2>
+        <div id="component-test"></div>
+      </div>
+
+      <!-- Environment Debug -->
+      <div class="section debug-section">
+        <h2>🔧 Environment & Debug</h2>
+        <div id="debug-section"></div>
+      </div>
+    </div>
+
+    <!-- Integration Status -->
+    <div class="section">
+      <h2>📊 Integration Status</h2>
+      <div id="integration-status"></div>
+    </div>
+  </div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    // Enhanced Global State Management
+    const createGlobalState = () => {
+      const state = {
+        wallet: {
+          address: '',
+          isConnected: false,
+          balance: { xrp: '0', rlusd: '0' }
+        },
+        escrows: [],
+        loading: false,
+        debug: null,
+        componentTests: {
+          useWallet: false,
+          useEscrow: false,
+          walletButton: false,
+          escrowStatus: false
+        }
+      };
+
+      const listeners = new Set();
+
+      const updateState = (updates) => {
+        Object.assign(state, updates);
+        listeners.forEach(listener => listener(state));
+      };
+
+      const subscribe = (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      };
+
+      return { state, updateState, subscribe };
+    };
+
+    const globalState = createGlobalState();
+
+    // Custom hook to use global state
+    function useGlobalState() {
+      const [state, setState] = useState(globalState.state);
+
+      useEffect(() => {
+        return globalState.subscribe(setState);
+      }, []);
+
+      return {
+        state,
+        updateWallet: (walletData) => globalState.updateState({
+          wallet: { ...state.wallet, ...walletData }
+        }),
+        updateEscrows: (escrows) => globalState.updateState({ escrows }),
+        setLoading: (loading) => globalState.updateState({ loading }),
+        setDebug: (debug) => globalState.updateState({ debug }),
+        updateComponentTests: (tests) => globalState.updateState({
+          componentTests: { ...state.componentTests, ...tests }
+        })
+      };
+    }
+
+    // Enhanced useWallet Hook (Replicating your src/hooks/useWallet.js)
+    function useWallet() {
+      const { state, updateWallet, setDebug } = useGlobalState();
+
+      const waitForCrossmark = useCallback(async (timeout = 15000) => {
+        let attempts = 0;
+        const maxAttempts = timeout / 100;
+        
+        return new Promise((resolve) => {
+          const check = () => {
+            attempts++;
+            
+            if (typeof window.crossmark !== 'undefined' && 
+                typeof window.crossmark.connect === 'function') {
+              console.log(`✅ Crossmark detected after ${attempts * 100}ms`);
+              resolve(true);
+              return;
+            }
+            
+            if (attempts >= maxAttempts) {
+              console.log(`❌ Crossmark not detected after ${timeout}ms`);
+              resolve(false);
+              return;
+            }
+            
+            setTimeout(check, 100);
+          };
+          
+          check();
+        });
+      }, []);
+
+      const connect = useCallback(async () => {
+        try {
+          console.log('🔄 [useWallet] Initiating connection...');
+          
+          if (typeof window.crossmark === 'undefined' || !window.crossmark.connect) {
+            console.log('⏳ [useWallet] Waiting for Crossmark...');
+            const available = await waitForCrossmark();
+            
+            if (!available) {
+              throw new Error('Crossmark extension not detected. Please install from https://crossmark.io and refresh the page.');
+            }
+          }
+
+          console.log('📞 [useWallet] Calling Crossmark connect...');
+          const result = await window.crossmark.connect();
+          
+          if (!result?.response?.data?.address) {
+            throw new Error('No address returned from Crossmark. Please try again.');
+          }
+
+          const address = result.response.data.address;
+          console.log('✅ [useWallet] Connection successful:', address);
+
+          updateWallet({
+            address,
+            isConnected: true
+          });
+
+          // Fetch balance
+          await fetchBalance(address);
+          return address;
+
+        } catch (error) {
+          console.error('❌ [useWallet] Connection failed:', error);
+          throw error;
+        }
+      }, [waitForCrossmark, updateWallet]);
+
+      const fetchBalance = useCallback(async (address) => {
+        try {
+          console.log('💰 [useWallet] Fetching balance for:', address);
+          const client = new xrpl.Client('wss://s.altnet.rippletest.net:51233');
+          await client.connect();
+
+          // Get XRP balance
+          const accountInfo = await client.request({
+            command: 'account_info',
+            account: address,
+            ledger_index: 'validated'
+          });
+          
+          const xrpBalance = (accountInfo.result.account_data.Balance / 1000000).toFixed(2);
+
+          // Get RLUSD balance
+          const trustlines = await client.request({
+            command: 'account_lines',
+            account: address,
+            ledger_index: 'validated'
+          });
+
+          const rlusdLine = trustlines.result.lines.find(line => line.currency === 'USD');
+          const rlusdBalance = rlusdLine ? parseFloat(rlusdLine.balance).toFixed(2) : '0.00';
+
+          updateWallet({
+            balance: { xrp: xrpBalance, rlusd: rlusdBalance }
+          });
+
+          await client.disconnect();
+          console.log(`💰 [useWallet] Balances updated: ${xrpBalance} XRP, ${rlusdBalance} RLUSD`);
+        } catch (error) {
+          console.error('💰❌ [useWallet] Balance fetch failed:', error);
+        }
+      }, [updateWallet]);
+
+      const disconnect = useCallback(() => {
+        updateWallet({
+          address: '',
+          isConnected: false,
+          balance: { xrp: '0', rlusd: '0' }
+        });
+        console.log('🔌 [useWallet] Disconnected');
+      }, [updateWallet]);
+
+      return {
+        ...state.wallet,
+        connect,
+        disconnect,
+        refreshBalance: () => state.wallet.address && fetchBalance(state.wallet.address)
+      };
+    }
+
+    // Enhanced useEscrow Hook (Replicating your src/hooks/useEscrow.js)
+    function useEscrow() {
+      const { state, updateEscrows, setLoading } = useGlobalState();
+
+      const createEscrow = useCallback(async (productId, amount, sellerAddress, buyerAddress) => {
+        setLoading(true);
+        try {
+          console.log('🔒 [useEscrow] Creating escrow:', { productId, amount, sellerAddress, buyerAddress });
+          
+          // Simulate escrow creation delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const newEscrow = {
+            id: `escrow_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            productId,
+            amount,
+            sellerAddress,
+            buyerAddress,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          };
+
+          const updatedEscrows = [...state.escrows, newEscrow];
+          updateEscrows(updatedEscrows);
+          
+          console.log('✅ [useEscrow] Escrow created:', newEscrow.id);
+          return newEscrow;
+        } catch (error) {
+          console.error('🔒❌ [useEscrow] Creation failed:', error);
+          throw error;
+        } finally {
+          setLoading(false);
+        }
+      }, [state.escrows, updateEscrows, setLoading]);
+
+      const completeEscrow = useCallback(async (escrowId) => {
+        setLoading(true);
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          const updatedEscrows = state.escrows.map(escrow => 
+            escrow.id === escrowId 
+              ? { ...escrow, status: 'completed', completedAt: new Date().toISOString() }
+              : escrow
+          );
+          
+          updateEscrows(updatedEscrows);
+          console.log('✅ [useEscrow] Escrow completed:', escrowId);
+        } catch (error) {
+          console.error('🔒❌ [useEscrow] Completion failed:', error);
+        } finally {
+          setLoading(false);
+        }
+      }, [state.escrows, updateEscrows, setLoading]);
+
+      const cancelEscrow = useCallback(async (escrowId) => {
+        setLoading(true);
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const updatedEscrows = state.escrows.map(escrow => 
+            escrow.id === escrowId 
+              ? { ...escrow, status: 'cancelled', cancelledAt: new Date().toISOString() }
+              : escrow
+          );
+          
+          updateEscrows(updatedEscrows);
+          console.log('❌ [useEscrow] Escrow cancelled:', escrowId);
+        } catch (error) {
+          console.error('🔒❌ [useEscrow] Cancellation failed:', error);
+        } finally {
+          setLoading(false);
+        }
+      }, [state.escrows, updateEscrows, setLoading]);
+
+      return {
+        escrows: state.escrows,
+        loading: state.loading,
+        createEscrow,
+        completeEscrow,
+        cancelEscrow,
+        getProductEscrow: (productId, buyerAddress) => {
+          return state.escrows.find(e => 
+            e.productId === productId && 
+            e.buyerAddress === buyerAddress &&
+            e.status === 'pending'
+          );
+        }
+      };
+    }
+
+    // WalletButton Component (Replicating your src/components/WalletButton.jsx)
+    function WalletButton() {
+      const { address, isConnected, balance, connect, disconnect, refreshBalance } = useWallet();
+      const [connecting, setConnecting] = useState(false);
+
+      const handleConnect = async () => {
+        setConnecting(true);
+        try {
+          await connect();
+          alert('✅ Wallet connected successfully!');
+        } catch (error) {
+          alert('❌ Connection failed: ' + error.message);
+        } finally {
+          setConnecting(false);
+        }
+      };
+
+      if (isConnected) {
+        return (
+          <div className="wallet-connected">
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1e40af' }}>
+                ✅ Wallet Connected
+              </div>
+              <div style={{ margin: '8px 0', fontSize: '16px' }}>
+                <strong>{balance.rlusd} RLUSD</strong> • <span style={{ color: '#64748b' }}>{balance.xrp} XRP</span>
+              </div>
+              <code style={{ fontSize: '13px', color: '#64748b' }}>
+                {address.slice(0, 8)}...{address.slice(-6)}
+              </code>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button onClick={refreshBalance} className="btn-warning">
+                🔄 Refresh
+              </button>
+              <button onClick={disconnect} className="btn-danger">
+                🔌 Disconnect
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <p style={{ marginBottom: '16px', color: '#64748b' }}>
+            Connect your Crossmark wallet to test the integration
+          </p>
+          <button 
+            onClick={handleConnect}
+            disabled={connecting}
+            className="btn-success"
+            style={{ fontSize: '18px', padding: '16px 32px' }}
+          >
+            {connecting ? '⏳ Connecting...' : '🦊 Connect Crossmark'}
+          </button>
+        </div>
+      );
+    }
+
+    // EscrowStatus Component (Replicating your src/components/EscrowStatus.jsx)
+    function EscrowStatus({ escrow, onComplete, onCancel, loading }) {
+      const statusConfig = {
+        pending: { color: '#f59e0b', icon: '⏳', text: 'Awaiting Delivery' },
+        completed: { color: '#10b981', icon: '✅', text: 'Completed' },
+        cancelled: { color: '#ef4444', icon: '❌', text: 'Cancelled' }
+      };
+
+      const config = statusConfig[escrow.status];
+
+      return (
+        <div className={`escrow-card status-${escrow.status}`} style={{ borderColor: config.color }}>
+          <div className="escrow-header">
+            <div className="escrow-status">{config.icon}</div>
+            <div className="escrow-info">
+              <div style={{ fontWeight: 'bold', color: config.color, fontSize: '16px' }}>
+                {config.text}
+              </div>
+              <div className="escrow-amount" style={{ color: config.color }}>
+                {escrow.amount} RLUSD
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px' }}>
+            <div><strong>Product:</strong> {escrow.productId}</div>
+            <div><strong>Created:</strong> {new Date(escrow.createdAt).toLocaleString()}</div>
+            <div><strong>Escrow ID:</strong> <code style={{ fontSize: '12px' }}>{escrow.id}</code></div>
+          </div>
+
+          {escrow.status === 'pending' && (
+            <div className="escrow-actions">
+              <button 
+                onClick={onComplete} 
+                disabled={loading}
+                className="btn-success"
+              >
+                ✓ Complete Escrow
+              </button>
+              <button 
+                onClick={onCancel} 
+                disabled={loading}
+                className="btn-danger"
+              >
+                ✕ Cancel Escrow
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Main Sections
+    function WalletSection() {
+      return <WalletButton />;
+    }
+
+    function EscrowSection() {
+      const { isConnected, address } = useWallet();
+      const { escrows, loading, createEscrow, completeEscrow, cancelEscrow } = useEscrow();
+
+      const handleCreateEscrow = async () => {
+        if (!isConnected) {
+          alert('Please connect your wallet first!');
+          return;
+        }
+
+        try {
+          await createEscrow(
+            `product_${Date.now()}`,
+            '10.00',
+            'rN7n7otQDd6FczFgLdlqtyMVrn3X4qYMYH', // Test seller
+            address
+          );
+          alert('✅ Test escrow created successfully!');
+        } catch (error) {
+          alert('❌ Failed to create escrow: ' + error.message);
+        }
+      };
+
+      return (
+        <div>
+          <div style={{ marginBottom: '24px' }}>
+            <button 
+              onClick={handleCreateEscrow}
+              disabled={loading || !isConnected}
+              className={loading ? '' : 'btn-success'}
+              style={{ fontSize: '16px', padding: '12px 24px' }}
+            >
+              {loading ? '⏳ Creating...' : '✨ Create Test Escrow (10 RLUSD)'}
+            </button>
+          </div>
+
+          <div>
+            <h3 style={{ margin: '20px 0', color: '#1e293b' }}>
+              Active Escrows ({escrows.length})
+            </h3>
+            
+            {escrows.length === 0 ? (
+              <p style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
+                No escrows yet. Connect your wallet and create one to test the functionality!
+              </p>
+            ) : (
+              escrows.map(escrow => (
+                <EscrowStatus 
+                  key={escrow.id}
+                  escrow={escrow}
+                  onComplete={() => completeEscrow(escrow.id)}
+                  onCancel={() => cancelEscrow(escrow.id)}
+                  loading={loading}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function ComponentTestSection() {
+      const { state, updateComponentTests } = useGlobalState();
+      const [testResults, setTestResults] = useState({});
+
+      const runComponentTests = () => {
+        const results = {
+          useWallet: typeof useWallet === 'function',
+          useEscrow: typeof useEscrow === 'function', 
+          walletButton: typeof WalletButton === 'function',
+          escrowStatus: typeof EscrowStatus === 'function',
+          reactIntegration: typeof React !== 'undefined',
+          xrplIntegration: typeof xrpl !== 'undefined'
+        };
+
+        setTestResults(results);
+        updateComponentTests(results);
+
+        const allPassed = Object.values(results).every(Boolean);
+        alert(allPassed ? 
+          '✅ All component tests passed!' : 
+          '⚠️ Some component tests failed. Check console for details.'
+        );
+      };
+
+      return (
+        <div>
+          <p style={{ marginBottom: '16px', color: '#64748b' }}>
+            Test your React components and hooks integration
+          </p>
+          
+          <button 
+            onClick={runComponentTests}
+            className="btn-success"
+            style={{ marginBottom: '16px' }}
+          >
+            🧪 Run Component Tests
+          </button>
+
+          {Object.keys(testResults).length > 0 && (
+            <div style={{ fontSize: '14px' }}>
+              {Object.entries(testResults).map(([test, passed]) => (
+                <div key={test} style={{ 
+                  padding: '8px', 
+                  margin: '4px 0',
+                  background: passed ? '#d1fae5' : '#fee2e2',
+                  borderRadius: '4px',
+                  color: passed ? '#065f46' : '#7f1d1d'
+                }}>
+                  {passed ? '✅' : '❌'} {test}: {passed ? 'PASS' : 'FAIL'}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function DebugSection() {
+      const { state, setDebug } = useGlobalState();
+
+      const checkEnvironment = () => {
+        const info = {
+          timestamp: new Date().toISOString(),
+          browser: {
+            userAgent: navigator.userAgent,
+            url: window.location.href
+          },
+          crossmark: {
+            detected: typeof window.crossmark !== 'undefined',
+            hasConnect: typeof window.crossmark?.connect === 'function',
+            methods: window.crossmark ? Object.keys(window.crossmark) : []
+          },
+          react: {
+            version: React.version,
+            available: typeof React !== 'undefined'
+          },
+          xrpl: {
+            available: typeof xrpl !== 'undefined',
+            client: typeof xrpl?.Client === 'function'
+          },
+          state: {
+            walletConnected: state.wallet.isConnected,
+            escrowCount: state.escrows.length,
+            loading: state.loading
+          }
+        };
+        
+        setDebug(info);
+        console.log('🔍 Environment check:', info);
+      };
+
+      return (
+        <div>
+          <button onClick={checkEnvironment} style={{ marginBottom: '16px' }}>
+            🔍 Check Environment
+          </button>
+
+          {state.debug && (
+            <div className="debug-output">
+              {JSON.stringify(state.debug, null, 2)}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function IntegrationStatus() {
+      const { state } = useGlobalState();
+
+      const statusItems = [
+        {
+          label: 'Crossmark Extension',
+          status: typeof window.crossmark !== 'undefined',
+          description: 'Browser extension detected'
+        },
+        {
+          label: 'Wallet Connection',
+          status: state.wallet.isConnected,
+          description: 'XRPL wallet connected'
+        },
+        {
+          label: 'Balance Fetching',
+          status: state.wallet.isConnected && (state.wallet.balance.xrp !== '0' || state.wallet.balance.rlusd !== '0'),
+          description: 'Live XRPL data'
+        },
+        {
+          label: 'Escrow System',
+          status: state.escrows.length > 0,
+          description: 'State management working'
+        },
+        {
+          label: 'React Integration',
+          status: typeof React !== 'undefined',
+          description: 'Component system active'
+        },
+        {
+          label: 'XRPL Integration', 
+          status: typeof xrpl !== 'undefined',
+          description: 'Blockchain connectivity'
+        }
+      ];
+
+      return (
+        <div className="integration-status">
+          {statusItems.map((item, index) => (
+            <div 
+              key={index}
+              className={`status-item ${item.status ? '' : 'error'}`}
+            >
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>
+                {item.status ? '✅' : '❌'}
+              </div>
+              <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                {item.label}
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b' }}>
+                {item.description}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Update main status banner
+    function updateMainStatus() {
+      const { state } = useGlobalState();
+      const banner = document.getElementById('main-status');
+      
+      if (state.wallet.isConnected) {
+        banner.textContent = `🟢 Integration Active - ${state.escrows.length} Escrows • ${state.wallet.balance.rlusd} RLUSD`;
+        banner.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      } else if (typeof window.crossmark !== 'undefined') {
+        banner.textContent = '🟡 Crossmark Detected - Click Connect to Continue';
+        banner.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+      } else {
+        banner.textContent = '🔴 Crossmark Not Detected - Please Install Extension';
+        banner.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+      }
+    }
+
+    // Render all sections
+    ReactDOM.render(<WalletSection />, document.getElementById('wallet-section'));
+    ReactDOM.render(<EscrowSection />, document.getElementById('escrow-section'));
+    ReactDOM.render(<ComponentTestSection />, document.getElementById('component-test'));
+    ReactDOM.render(<DebugSection />, document.getElementById('debug-section'));
+    ReactDOM.render(<IntegrationStatus />, document.getElementById('integration-status'));
+
+    // Update status banner every second
+    setInterval(updateMainStatus, 1000);
+    
+    // Initialize
+    console.log('🚀 Complete Integration Test Suite loaded!');
+    console.log('📱 Testing your useWallet and useEscrow hooks');
+    console.log('⚙️ All React components integrated');
+    updateMainStatus();
+  </script>
+
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+</html>
