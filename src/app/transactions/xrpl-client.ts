@@ -10,7 +10,7 @@ let xrplClient: Client;
 
 export const getXrplClient = () => {
     if (!xrplClient) {
-        xrplClient = new Client(networks.RIPPLETESTNET);
+        xrplClient = new Client(networks.RIPPLE_TESTNET);
         return xrplClient;
     }
     return xrplClient;
