@@ -1,4 +1,4 @@
-import { Client } from 'xrpl-client';
+import { Client } from 'xrpl';
 
 const networks = {
     RIPPLE_TESTNET: 'wss://s.altnet.rippletest.net:51233',
@@ -10,7 +10,7 @@ let xrplClient: Client;
 
 export const getXrplClient = () => {
     if (!xrplClient) {
-        xrplClient = new Client(networks.RIPPLETESTNET);
+        xrplClient = new Client(networks.RIPPLE_TESTNET);
         return xrplClient;
     }
     return xrplClient;
