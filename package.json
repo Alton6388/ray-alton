@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "next": "^15.0.0",
-    "react": "^19.0.0-rc",
+    "react": "^19.2.3",
     "react-dom": "^19.0.0-rc",
     "xrpl": "^4.5.0"
   },
