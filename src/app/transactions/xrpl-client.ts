@@ -1,4 +1,4 @@
-import { Client } from 'xrpl-client';
+import { Client } from 'xrpl';
 
 const networks = {
     RIPPLE_TESTNET: 'wss://s.altnet.rippletest.net:51233',
