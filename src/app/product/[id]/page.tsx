@@ -186,13 +186,20 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       
       console.log(`🛒 Creating escrow from ${buyerAddress} to ${sellerAddress}`);
       
-      // Escrow timing
-      const now = Math.floor(Date.now() / 1000);
+      // CRITICAL FIX: Convert to Ripple Epoch time
+      // XRPL time starts from January 1, 2000 (not January 1, 1970 like Unix)
+      // We need to subtract 946,684,800 seconds (30 years) to convert properly
+      const RIPPLE_EPOCH_OFFSET = 946684800; // Seconds between Unix epoch (1970) and Ripple epoch (2000)
+      const now = Math.floor(Date.now() / 1000) - RIPPLE_EPOCH_OFFSET;
       const finishAfter = now + (1 * 60); // Funds can be released after 1 minute (for testing)
       const cancelAfter = now + (7 * 86400); // Buyer can cancel after 7 days
       
-      console.log(`⏰ FinishAfter: ${finishAfter} (${new Date(finishAfter * 1000).toLocaleString()})`);
-      console.log(`⏰ CancelAfter: ${cancelAfter} (${new Date(cancelAfter * 1000).toLocaleString()})`);
+      // Convert back to Unix timestamp for display
+      const finishAfterDate = new Date((finishAfter + RIPPLE_EPOCH_OFFSET) * 1000);
+      const cancelAfterDate = new Date((cancelAfter + RIPPLE_EPOCH_OFFSET) * 1000);
+      
+      console.log(`⏰ FinishAfter: ${finishAfter} (Ripple time) = ${finishAfterDate.toLocaleString()}`);
+      console.log(`⏰ CancelAfter: ${cancelAfter} (Ripple time) = ${cancelAfterDate.toLocaleString()}`);
       
       // Determine currency and amount format
       const currency = product.currency || 'XRP';

@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import Header from "../../components/Header";
 import { ArrowLeft, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { useCrossmarkReady } from "@/hooks/useCrossmarkReady";
+import { 
+  waitForTransactionConfirmation, 
+  isUUID, 
+  getTransactionErrorMessage 
+} from "@/utils/xrplQuery";
+import { verifyEscrow, parseCrossmarkError } from "@/utils/xrplEscrow";
 
 export default function EscrowManagementPage() {
   const router = useRouter();
@@ -32,7 +38,40 @@ export default function EscrowManagementPage() {
     setResult(null);
 
     try {
-      // Get current session
+      // STEP 1: Verify the escrow exists and can be finished
+      console.log("🔍 Step 1: Verifying escrow exists...");
+      const escrowInfo = await verifyEscrow(ownerAddress, parseInt(offerSequence));
+      
+      if (!escrowInfo.exists) {
+        setResult({
+          success: false,
+          message: escrowInfo.error || "Escrow not found",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      if (!escrowInfo.canFinishNow) {
+        setResult({
+          success: false,
+          message: escrowInfo.error || "Escrow cannot be finished yet",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      console.log("✅ Escrow verified and ready to finish!");
+      console.log(`💰 Amount: ${Number(escrowInfo.amount!) / 1_000_000} XRP`);
+      console.log(`📍 Destination: ${escrowInfo.destination}`);
+      
+      // Use the CORRECT sequence from the verification
+      const correctSequence = escrowInfo.correctSequence || parseInt(offerSequence);
+      if (correctSequence !== parseInt(offerSequence)) {
+        console.log(`⚠️  Using corrected sequence: ${correctSequence} (you entered ${offerSequence})`);
+      }
+      
+      // STEP 2: Get wallet connection
+      console.log("🔍 Step 2: Connecting to wallet...");
       const session = window.crossmark?.session;
       let buyerAddress = session?.address;
 
@@ -50,9 +89,12 @@ export default function EscrowManagementPage() {
         return;
       }
 
-      console.log("🔓 Finishing escrow...");
+      console.log("✅ Connected to wallet:", buyerAddress);
+      
+      // STEP 3: Create and submit EscrowFinish transaction
+      console.log("🔍 Step 3: Creating EscrowFinish transaction...");
       console.log("Owner (Buyer):", ownerAddress);
-      console.log("Offer Sequence:", offerSequence);
+      console.log("Offer Sequence (CORRECT):", correctSequence);
       console.log("Finishing by:", buyerAddress);
 
       // Create EscrowFinish transaction
@@ -60,7 +102,7 @@ export default function EscrowManagementPage() {
         TransactionType: "EscrowFinish",
         Account: buyerAddress, // Can be buyer or seller
         Owner: ownerAddress, // The address that created the escrow (buyer)
-        OfferSequence: parseInt(offerSequence),
+        OfferSequence: correctSequence, // Use the CORRECT sequence
         Fee: "12",
       };
 
@@ -68,45 +110,170 @@ export default function EscrowManagementPage() {
 
       // Sign and submit
       let signResult;
-      if (typeof window.crossmark.signAndSubmit === "function") {
-        signResult = await window.crossmark.signAndSubmit(tx);
-      } else if (window.crossmark.methods?.signAndSubmit) {
-        signResult = await window.crossmark.methods.signAndSubmit(tx);
-      } else if (window.crossmark.async?.signAndSubmit) {
-        signResult = await window.crossmark.async.signAndSubmit(tx);
-      } else {
-        alert("❌ Crossmark signing method not available.");
+      console.log("🔐 Step 4: Signing and submitting transaction...");
+      
+      try {
+        if (typeof window.crossmark.signAndSubmit === "function") {
+          console.log("✅ Using window.crossmark.signAndSubmit");
+          signResult = await window.crossmark.signAndSubmit(tx);
+        } else if (window.crossmark.methods?.signAndSubmit) {
+          console.log("✅ Using window.crossmark.methods.signAndSubmit");
+          signResult = await window.crossmark.methods.signAndSubmit(tx);
+        } else if (window.crossmark.async?.signAndSubmit) {
+          console.log("✅ Using window.crossmark.async.signAndSubmit");
+          signResult = await window.crossmark.async.signAndSubmit(tx);
+        } else {
+          alert("❌ Crossmark signing method not available.");
+          setLoading(false);
+          return;
+        }
+      } catch (crossmarkError: any) {
+        console.error("❌ Crossmark rejected or failed the transaction:", crossmarkError);
+        
+        // Parse the error from Crossmark
+        const errorMessage = parseCrossmarkError(crossmarkError);
+        
+        setResult({
+          success: false,
+          message: `Transaction rejected: ${errorMessage}. The escrow may have already been finished, or there may be an issue with the Owner Address or Sequence Number.`,
+        });
         setLoading(false);
         return;
       }
 
       console.log("✅ Transaction result:", signResult);
+      console.log("📊 Full response structure:", JSON.stringify(signResult, null, 2));
 
-      // Extract transaction hash
-      const txHash =
-        signResult?.response?.data?.resp?.result?.hash ||
-        signResult?.response?.data?.hash ||
-        signResult?.hash ||
-        signResult?.id ||
-        signResult?.result?.hash;
+      // IMPORTANT: Crossmark may return:
+      // 1. Full transaction object with hash and result
+      // 2. Just a UUID (transaction pending/submitted)
+      // 3. An error object
+      
+      let txHash: string | undefined;
+      let txResult: string | undefined;
+      
+      // Check if we got a UUID response (most common with Crossmark)
+      if (typeof signResult === 'string' && isUUID(signResult)) {
+        console.log("⏳ Got UUID response, querying ledger for actual result:", signResult);
+        console.log("🔍 Looking for EscrowFinish transaction from account:", buyerAddress);
+        
+        // Query the ledger to get the actual transaction result
+        // Note: We can't look up by UUID, so we check recent transactions for this account
+        const ledgerResult = await waitForTransactionConfirmation(buyerAddress, 20, 1000);
+        
+        if (ledgerResult.error) {
+          console.error("❌ Transaction failed or not found:", ledgerResult.error_message);
+          setResult({
+            success: false,
+            message: ledgerResult.error_message || "Transaction failed or was not found on the ledger.",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        txHash = ledgerResult.hash;
+        txResult = ledgerResult.result;
+        console.log("✅ Retrieved from ledger - Hash:", txHash, "Result:", txResult);
+      } 
+      // Check if the response has an id/uuid field (wrapped UUID)
+      else if (signResult?.id && isUUID(signResult.id)) {
+        console.log("⏳ Got wrapped UUID response, querying ledger:", signResult.id);
+        console.log("🔍 Looking for EscrowFinish transaction from account:", buyerAddress);
+        
+        const ledgerResult = await waitForTransactionConfirmation(buyerAddress, 20, 1000);
+        
+        if (ledgerResult.error) {
+          console.error("❌ Transaction failed or not found:", ledgerResult.error_message);
+          setResult({
+            success: false,
+            message: ledgerResult.error_message || "Transaction failed or was not found on the ledger.",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        txHash = ledgerResult.hash;
+        txResult = ledgerResult.result;
+        console.log("✅ Retrieved from ledger - Hash:", txHash, "Result:", txResult);
+      }
+      // Otherwise try to extract from the response object
+      else {
+        // Try to decode base64 response if present
+        let actualResponse = signResult;
+        
+        if (typeof signResult?.response?.data === 'string') {
+          try {
+            const decoded = atob(signResult.response.data);
+            actualResponse = JSON.parse(decoded);
+            console.log("🔓 Decoded response:", actualResponse);
+          } catch (e) {
+            console.log("⚠️ Could not decode base64 response, using raw data");
+          }
+        }
 
-      const txResult =
-        signResult?.response?.data?.resp?.result?.meta?.TransactionResult ||
-        signResult?.response?.data?.meta?.TransactionResult ||
-        (signResult as any)?.meta?.TransactionResult ||
-        signResult?.result?.meta?.TransactionResult;
+        // Check if Crossmark returned an error
+        const crossmarkError = actualResponse?.error || signResult?.error || signResult?.response?.error;
+        if (crossmarkError) {
+          console.error("❌ Crossmark returned an error:", crossmarkError);
+          const errorMessage = typeof crossmarkError === 'string' 
+            ? crossmarkError 
+            : crossmarkError.message || 'Unknown error';
+          setResult({
+            success: false,
+            message: `Transaction failed: ${errorMessage}`,
+          });
+          setLoading(false);
+          return;
+        }
 
-      if (txHash && txResult === "tesSUCCESS") {
+        // Extract transaction hash from the decoded response
+        txHash =
+          actualResponse?.hash ||
+          actualResponse?.result?.hash ||
+          actualResponse?.tx_json?.hash ||
+          actualResponse?.result?.tx_json?.hash ||
+          signResult?.hash ||
+          signResult?.result?.hash;
+
+        // Extract transaction result
+        txResult =
+          actualResponse?.meta?.TransactionResult ||
+          actualResponse?.engine_result ||
+          actualResponse?.result?.meta?.TransactionResult ||
+          actualResponse?.result?.engine_result ||
+          (actualResponse as any)?.engine_result_code;
+      }
+
+      console.log("🔑 Final Hash:", txHash);
+      console.log("📋 Final Result:", txResult);
+
+      // Process the result
+      if (txResult === "tesSUCCESS") {
         setResult({
           success: true,
           message: "Escrow finished successfully! Funds released to seller.",
           txHash: txHash,
         });
+      } else if (txResult) {
+        // Transaction was processed but failed
+        const userMessage = getTransactionErrorMessage(txResult);
+        
+        setResult({
+          success: false,
+          message: userMessage,
+          txHash: txHash,
+        });
+      } else if (txHash) {
+        // Have hash but no result - shouldn't happen now with ledger query
+        setResult({
+          success: false,
+          message: "Transaction submitted but result unknown. Please check the transaction on XRPL Explorer.",
+          txHash: txHash,
+        });
       } else {
         setResult({
           success: false,
-          message: `Transaction failed: ${txResult || "Unknown error"}`,
-          txHash: txHash,
+          message: "Transaction failed: Unable to extract transaction details. Please try again.",
         });
       }
     } catch (error: any) {
