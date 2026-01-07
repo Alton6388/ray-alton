@@ -6,7 +6,6 @@ import Header from "../../components/Header";
 import { ArrowLeft, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { useCrossmarkReady } from "@/hooks/useCrossmarkReady";
 import { 
-  waitForTransactionConfirmation, 
   isUUID, 
   getTransactionErrorMessage 
 } from "@/utils/xrplQuery";
@@ -146,55 +145,146 @@ export default function EscrowManagementPage() {
 
       // IMPORTANT: Crossmark may return:
       // 1. Full transaction object with hash and result
-      // 2. Just a UUID (transaction pending/submitted)
-      // 3. An error object
+      // 2. Just a UUID (transaction submitted, need to wait for confirmation)
+      // 3. An error object (but this would throw in the catch block above)
       
       let txHash: string | undefined;
       let txResult: string | undefined;
       
       // Check if we got a UUID response (most common with Crossmark)
       if (typeof signResult === 'string' && isUUID(signResult)) {
-        console.log("⏳ Got UUID response, querying ledger for actual result:", signResult);
-        console.log("🔍 Looking for EscrowFinish transaction from account:", buyerAddress);
+        console.log("⏳ Transaction submitted with UUID:", signResult);
+        console.log("⏳ Waiting 3 seconds for ledger confirmation...");
         
-        // Query the ledger to get the actual transaction result
-        // Note: We can't look up by UUID, so we check recent transactions for this account
-        const ledgerResult = await waitForTransactionConfirmation(buyerAddress, 20, 1000);
+        // Wait a few seconds for the transaction to be processed on the ledger
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
-        if (ledgerResult.error) {
-          console.error("❌ Transaction failed or not found:", ledgerResult.error_message);
+        // Now try to find the transaction
+        console.log("🔍 Checking if EscrowFinish succeeded on the ledger...");
+        
+        // Check if the escrow still exists - if it doesn't, the finish succeeded
+        try {
+          const xrpl = await import('xrpl');
+          const client = new xrpl.Client('wss://s.altnet.rippletest.net:51233');
+          await client.connect();
+          
+          const response = await client.request({
+            command: 'account_objects',
+            account: ownerAddress,
+            type: 'escrow',
+          });
+          
+          // Check if the escrow with our sequence still exists
+          let escrowStillExists = false;
+          for (const obj of response.result.account_objects) {
+            const prevTxnID = (obj as any).PreviousTxnID;
+            try {
+              const txResp = await client.request({
+                command: 'tx',
+                transaction: prevTxnID,
+              });
+              const seq = (txResp.result as any).tx_json?.Sequence;
+              if (seq === correctSequence) {
+                escrowStillExists = true;
+                break;
+              }
+            } catch (e) {
+              // Ignore errors checking individual escrows
+            }
+          }
+          
+          await client.disconnect();
+          
+          if (escrowStillExists) {
+            console.log("❌ Escrow still exists - transaction may have failed");
+            setResult({
+              success: false,
+              message: "Transaction was submitted but the escrow still exists on the ledger. It may have failed. Please verify on XRPL Explorer.",
+            });
+          } else {
+            console.log("✅ Escrow no longer exists - transaction succeeded!");
+            setResult({
+              success: true,
+              message: "Escrow finished successfully! Funds have been released to the seller.",
+            });
+          }
+          
+        } catch (checkError) {
+          console.error("⚠️ Could not verify transaction status:", checkError);
           setResult({
             success: false,
-            message: ledgerResult.error_message || "Transaction failed or was not found on the ledger.",
+            message: "Transaction submitted but could not verify status. Please check XRPL Explorer to confirm.",
           });
-          setLoading(false);
-          return;
         }
         
-        txHash = ledgerResult.hash;
-        txResult = ledgerResult.result;
-        console.log("✅ Retrieved from ledger - Hash:", txHash, "Result:", txResult);
+        setLoading(false);
+        return;
       } 
       // Check if the response has an id/uuid field (wrapped UUID)
       else if (signResult?.id && isUUID(signResult.id)) {
-        console.log("⏳ Got wrapped UUID response, querying ledger:", signResult.id);
-        console.log("🔍 Looking for EscrowFinish transaction from account:", buyerAddress);
+        console.log("⏳ Transaction submitted with wrapped UUID:", signResult.id);
+        console.log("⏳ Waiting 3 seconds for ledger confirmation...");
         
-        const ledgerResult = await waitForTransactionConfirmation(buyerAddress, 20, 1000);
+        // Same logic - wait and verify
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
-        if (ledgerResult.error) {
-          console.error("❌ Transaction failed or not found:", ledgerResult.error_message);
+        console.log("🔍 Checking if EscrowFinish succeeded on the ledger...");
+        
+        try {
+          const xrpl = await import('xrpl');
+          const client = new xrpl.Client('wss://s.altnet.rippletest.net:51233');
+          await client.connect();
+          
+          const response = await client.request({
+            command: 'account_objects',
+            account: ownerAddress,
+            type: 'escrow',
+          });
+          
+          let escrowStillExists = false;
+          for (const obj of response.result.account_objects) {
+            const prevTxnID = (obj as any).PreviousTxnID;
+            try {
+              const txResp = await client.request({
+                command: 'tx',
+                transaction: prevTxnID,
+              });
+              const seq = (txResp.result as any).tx_json?.Sequence;
+              if (seq === correctSequence) {
+                escrowStillExists = true;
+                break;
+              }
+            } catch (e) {
+              // Ignore
+            }
+          }
+          
+          await client.disconnect();
+          
+          if (escrowStillExists) {
+            console.log("❌ Escrow still exists - transaction may have failed");
+            setResult({
+              success: false,
+              message: "Transaction was submitted but the escrow still exists on the ledger. It may have failed. Please verify on XRPL Explorer.",
+            });
+          } else {
+            console.log("✅ Escrow no longer exists - transaction succeeded!");
+            setResult({
+              success: true,
+              message: "Escrow finished successfully! Funds have been released to the seller.",
+            });
+          }
+          
+        } catch (checkError) {
+          console.error("⚠️ Could not verify transaction status:", checkError);
           setResult({
             success: false,
-            message: ledgerResult.error_message || "Transaction failed or was not found on the ledger.",
+            message: "Transaction submitted but could not verify status. Please check XRPL Explorer to confirm.",
           });
-          setLoading(false);
-          return;
         }
         
-        txHash = ledgerResult.hash;
-        txResult = ledgerResult.result;
-        console.log("✅ Retrieved from ledger - Hash:", txHash, "Result:", txResult);
+        setLoading(false);
+        return;
       }
       // Otherwise try to extract from the response object
       else {

@@ -239,6 +239,33 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       };
 
       console.log('📝 Creating escrow transaction:', JSON.stringify(tx, null, 2));
+      
+      // CRITICAL: Re-verify the address RIGHT before signing
+      const lastMinuteCheck = window.crossmark?.session?.address;
+      if (!lastMinuteCheck) {
+        alert('❌ Crossmark session lost. Please refresh and try again.');
+        return;
+      }
+      
+      if (lastMinuteCheck !== buyerAddress) {
+        console.error('❌ ADDRESS MISMATCH!');
+        console.error('  App thinks buyer is:', buyerAddress);
+        console.error('  Crossmark active wallet:', lastMinuteCheck);
+        
+        alert(
+          '❌ WALLET MISMATCH!\n\n' +
+          `The app detected: ${buyerAddress.slice(0, 20)}...\n` +
+          `But Crossmark is using: ${lastMinuteCheck.slice(0, 20)}...\n\n` +
+          'Please:\n' +
+          '1. Make sure the correct wallet is selected in Crossmark\n' +
+          '2. Refresh this page\n' +
+          '3. Try again'
+        );
+        return;
+      }
+      
+      console.log('✅ Address verified - Buyer:', buyerAddress);
+      console.log('✅ Crossmark session matches!');
 
       // Try different Crossmark API methods based on what's available
       let signResult;
