@@ -141,7 +141,7 @@ export default function ProductDetails({
             onClick={() => onBuyNow(product.id, product.price)}
             className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white font-bold py-5 px-8 rounded-xl text-lg shadow-lg hover:shadow-2xl transition-all"
           >
-            Secure Purchase – {product.price} RLUSD
+            Secure Purchase – {product.price} {product.currency || 'RLUSD'}
           </button>
 
           <p className="text-center text-xs text-gray-500 mt-4">
