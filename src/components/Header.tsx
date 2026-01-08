@@ -14,7 +14,7 @@ export default function Header() {
 
   const connectWallet = async () => {
     if (!crossmarkReady || !window.crossmark) {
-      alert('⚠️ Crossmark wallet not detected or not ready!\n\nPlease install the Crossmark extension:\nhttps://crossmark.io\n\nOr wait a moment for it to load.');
+      alert('Crossmark wallet not detected or not ready!\n\nPlease install the Crossmark extension:\nhttps://crossmark.io\n\nOr wait a moment for it to load.');
       return;
     }
 
@@ -29,7 +29,7 @@ export default function Header() {
       // Check if address is already available in session
       if (window.crossmark.session?.address) {
         address = window.crossmark.session.address;
-        console.log('✅ Address found in session:', address);
+        console.log('Address found in session:', address);
       }
       // Try calling connect if it exists
       else if (typeof window.crossmark.connect === 'function') {
@@ -58,11 +58,11 @@ export default function Header() {
       // Prompt user to manually enter address
       else {
         console.warn('No known connection method found');
-        alert('⚠️ Crossmark detected but connection method not recognized.\n\nPlease enter your wallet address manually:');
+        alert('Crossmark detected but connection method not recognized.\n\nPlease enter your wallet address manually:');
         address = prompt('Enter your XRPL wallet address (starts with "r"):');
         
         if (address && !address.startsWith('r')) {
-          alert('❌ Invalid XRPL address. Must start with "r"');
+          alert('Invalid XRPL address. Must start with "r"');
           address = null;
         }
       }
@@ -76,11 +76,11 @@ export default function Header() {
         console.log('✅ Wallet connected:', address);
       } else {
         console.warn('Could not retrieve address');
-        alert('❌ Could not retrieve wallet address.\n\nPlease check:\n1. Crossmark is unlocked\n2. You have approved the connection\n3. Console for more details');
+        alert('Could not retrieve wallet address.\n\nPlease check:\n1. Crossmark is unlocked\n2. You have approved the connection\n3. Console for more details');
       }
     } catch (error: any) {
       console.error('Connection error:', error);
-      alert(`❌ Failed to connect:\n${error.message || 'Unknown error'}\n\nCheck console for details.`);
+      alert(`Failed to connect:\n${error.message || 'Unknown error'}\n\nCheck console for details.`);
     } finally {
       setIsConnecting(false);
     }

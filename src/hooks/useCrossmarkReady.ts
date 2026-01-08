@@ -29,7 +29,7 @@ export function useCrossmarkReady() {
           (window.crossmark.session !== undefined);
         
         if (hasRequiredMethods) {
-          console.log('✅ Crossmark extension is ready');
+          console.log('Crossmark extension is ready');
           setIsReady(true);
           setError(null);
           return true;
@@ -44,7 +44,7 @@ export function useCrossmarkReady() {
           setIsInstalled(false);
           setError('Crossmark extension not detected. Please install it from crossmark.io');
         }
-        console.warn('⚠️ Crossmark initialization timeout');
+        console.warn('Crossmark initialization timeout');
         return true;
       }
       

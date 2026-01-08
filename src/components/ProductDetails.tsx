@@ -143,7 +143,7 @@ export default function ProductDetails({
           </button>
 
           <p className="text-center text-xs text-gray-500 mt-4">
-            🔒 XRPL escrow protected • 7-day guarantee
+            XRPL escrow protected • 7-day guarantee
           </p>
         </div>
       </div>

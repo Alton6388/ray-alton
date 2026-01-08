@@ -22,13 +22,13 @@ export default function EscrowManagementPage() {
 
   const handleFinishEscrow = async () => {
     if (!ownerAddress || !offerSequence) {
-      alert("❌ Please enter both Owner Address and Offer Sequence Number");
+      alert("Please enter both Owner Address and Offer Sequence Number");
       return;
     }
 
     // Check if Crossmark is available
     if (!window.crossmark) {
-      alert("❌ Crossmark wallet not detected.\n\nPlease install Crossmark from: https://crossmark.io");
+      alert("Crossmark wallet not detected.\n\nPlease install Crossmark from: https://crossmark.io");
       return;
     }
 
@@ -37,7 +37,7 @@ export default function EscrowManagementPage() {
 
     try {
       // Verify the escrow exists and can be finished
-      console.log("🔍 Step 1: Verifying escrow exists...");
+      console.log("Step 1: Verifying escrow exists...");
       const escrowInfo = await verifyEscrow(ownerAddress, parseInt(offerSequence));
       
       if (!escrowInfo.exists) {
@@ -58,18 +58,18 @@ export default function EscrowManagementPage() {
         return;
       }
       
-      console.log("✅ Escrow verified and ready to finish!");
-      console.log(`💰 Amount: ${Number(escrowInfo.amount!) / 1_000_000} XRP`);
-      console.log(`📍 Destination: ${escrowInfo.destination}`);
+      console.log("Escrow verified and ready to finish!");
+      console.log(`Amount: ${Number(escrowInfo.amount!) / 1_000_000} XRP`);
+      console.log(`Destination: ${escrowInfo.destination}`);
       
       // Use the correct sequence from the verification
       const correctSequence = escrowInfo.correctSequence || parseInt(offerSequence);
       if (correctSequence !== parseInt(offerSequence)) {
-        console.log(`⚠️  Using corrected sequence: ${correctSequence} (you entered ${offerSequence})`);
+        console.log(`Using corrected sequence: ${correctSequence} (you entered ${offerSequence})`);
       }
       
       // Get wallet connection
-      console.log("🔍 Step 2: Connecting to wallet...");
+      console.log("Step 2: Connecting to wallet...");
       const session = window.crossmark?.session;
       let buyerAddress = session?.address;
 
@@ -82,16 +82,16 @@ export default function EscrowManagementPage() {
       }
 
       if (!buyerAddress) {
-        alert("❌ Could not connect to wallet. Please try again.");
+        alert("Could not connect to wallet. Please try again.");
         setLoading(false);
         return;
       }
 
-      console.log("✅ Connected to wallet:", buyerAddress);
+      console.log("Connected to wallet:", buyerAddress);
       let conditionHex: string | undefined;
       let fulfillmentHex: string | undefined;
       try {
-        console.log('🔍 Fetching fulfillmentHex from server...');
+        console.log('Fetching fulfillmentHex from server...');
         const getFulfillmentResponse = await fetch(
           `/api/escrow/get-fulfillment?ownerAddress=${encodeURIComponent(ownerAddress)}&offerSequence=${offerSequence}`
         );
@@ -99,20 +99,20 @@ export default function EscrowManagementPage() {
         if (getFulfillmentResponse.ok) {
           const data = await getFulfillmentResponse.json();
           fulfillmentHex = data.fulfillment.fulfillmentHex;
-          conditionHex = data.fulfillment.condition;  // ✅ Extract condition too
-          console.log('✅ Retrieved fulfillmentHex from server');
+          conditionHex = data.fulfillment.condition;  
+          console.log('Retrieved fulfillmentHex from server');
           console.log(`   Condition: ${conditionHex?.slice(0, 20)}...`);
           console.log(`   Fulfillment: ${fulfillmentHex?.slice(0, 20)}...`);
         } else {
           const error = await getFulfillmentResponse.json();
-          console.warn('⚠️ Could not fetch fulfillment:', error.error);
+          console.warn('Could not fetch fulfillment:', error.error);
         }
       } catch (err: any) {
-        console.warn('⚠️ Error fetching fulfillment:', err.message);
+        console.warn('Error fetching fulfillment:', err.message);
       }
       
       // Create and submit EscrowFinish transaction
-      console.log("🔍 Step 3: Creating EscrowFinish transaction...");
+      console.log("Step 3: Creating EscrowFinish transaction...");
       console.log("Owner (Buyer):", ownerAddress);
       console.log("Offer Sequence (CORRECT):", correctSequence);
       console.log("Finishing by:", buyerAddress);
@@ -127,38 +127,38 @@ export default function EscrowManagementPage() {
         Fee: "700",  
       };
 
-      console.log("📝 EscrowFinish transaction:", JSON.stringify(tx, null, 2));
+      console.log("EscrowFinish transaction:", JSON.stringify(tx, null, 2));
 
       // Sign and submit
       let signResult;
-      console.log("🔐 Step 4: Signing and submitting transaction...");
+      console.log("Step 4: Signing and submitting transaction...");
       
        try {
         if (typeof window.crossmark.signAndSubmitAndWait === "function") {
-          console.log("✅ Using window.crossmark.signAndSubmitAndWait");
+          console.log("Using window.crossmark.signAndSubmitAndWait");
           signResult = await window.crossmark.signAndSubmitAndWait(tx);
         } else if (window.crossmark.methods?.signAndSubmitAndWait) {
-          console.log("✅ Using window.crossmark.methods.signAndSubmitAndWait");
+          console.log("Using window.crossmark.methods.signAndSubmitAndWait");
           signResult = await window.crossmark.methods.signAndSubmitAndWait(tx);
         } else if (window.crossmark.async?.signAndSubmitAndWait) {
-          console.log("✅ Using window.crossmark.async.signAndSubmitAndWait");
+          console.log("Using window.crossmark.async.signAndSubmitAndWait");
           signResult = await window.crossmark.async.signAndSubmitAndWait(tx);
         } else if (typeof window.crossmark.signAndSubmit === "function") {
-          console.log("✅ Using window.crossmark.signAndSubmit (fallback)");
+          console.log("Using window.crossmark.signAndSubmit (fallback)");
           signResult = await window.crossmark.signAndSubmit(tx);
         } else if (window.crossmark.methods?.signAndSubmit) {
-          console.log("✅ Using window.crossmark.methods.signAndSubmit");
+          console.log("Using window.crossmark.methods.signAndSubmit");
           signResult = await window.crossmark.methods.signAndSubmit(tx);
         } else if (window.crossmark.async?.signAndSubmit) {
-          console.log("✅ Using window.crossmark.async.signAndSubmit");
+          console.log("Using window.crossmark.async.signAndSubmit");
           signResult = await window.crossmark.async.signAndSubmit(tx);
         } else {
-          alert("❌ Crossmark signing method not available.");
+          alert("Crossmark signing method not available.");
           setLoading(false);
           return;
         }
       } catch (crossmarkError: any) {
-        console.error("❌ Crossmark rejected or failed the transaction:", crossmarkError);
+        console.error("Crossmark rejected or failed the transaction:", crossmarkError);
         
         // Parse the error from Crossmark
         const errorMessage = parseCrossmarkError(crossmarkError);
@@ -171,19 +171,19 @@ export default function EscrowManagementPage() {
         return;
       }
 
-      console.log("✅ Transaction result:", signResult);
-      console.log("📊 Full response structure:", JSON.stringify(signResult, null, 2));
+      console.log("Transaction result:", signResult);
+      console.log("Full response structure:", JSON.stringify(signResult, null, 2));
       
       let txHash: string | undefined;
       let txResult: string | undefined;
       
       // Check for UUID response 
       if (typeof signResult === 'string' && isUUID(signResult)) {
-        console.log("⏳ Transaction submitted with UUID:", signResult);
-        console.log("⏳ Waiting 3 seconds for ledger confirmation...");
+        console.log("Transaction submitted with UUID:", signResult);
+        console.log("Waiting 3 seconds for ledger confirmation...");
         
         await new Promise(resolve => setTimeout(resolve, 3000));
-        console.log("🔍 Checking if EscrowFinish succeeded on the ledger...");
+        console.log("Checking if EscrowFinish succeeded on the ledger...");
         
         try {
           const xrpl = await import('xrpl');
@@ -217,13 +217,13 @@ export default function EscrowManagementPage() {
           await client.disconnect();
           
           if (escrowStillExists) {
-            console.log("❌ Escrow still exists - transaction may have failed");
+            console.log("Escrow still exists - transaction may have failed");
             setResult({
               success: false,
               message: "Transaction was submitted but the escrow still exists on the ledger. It may have failed. Please verify on XRPL Explorer.",
             });
           } else {
-            console.log("✅ Escrow no longer exists - transaction succeeded!");
+            console.log("Escrow no longer exists - transaction succeeded!");
             setResult({
               success: true,
               message: "Escrow finished successfully! Funds have been released to the seller.",
@@ -241,17 +241,17 @@ export default function EscrowManagementPage() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ escrowFinished: true }),
                     });
-                    console.log("✅ Purchase marked as complete:", purchase.id);
+                    console.log("Purchase marked as complete:", purchase.id);
                   }
                 }
               }
             } catch (purchaseErr) {
-              console.warn("⚠️ Could not update purchase status:", purchaseErr);
+              console.warn("Could not update purchase status:", purchaseErr);
             }
           }
           
         } catch (checkError) {
-          console.error("⚠️ Could not verify transaction status:", checkError);
+          console.error("Could not verify transaction status:", checkError);
           setResult({
             success: false,
             message: "Transaction submitted but could not verify status. Please check XRPL Explorer to confirm.",
@@ -263,12 +263,12 @@ export default function EscrowManagementPage() {
       } 
       // Check if the response has an id/uuid field (wrapped UUID)
       else if (signResult?.id && isUUID(signResult.id)) {
-        console.log("⏳ Transaction submitted with wrapped UUID:", signResult.id);
-        console.log("⏳ Waiting 3 seconds for ledger confirmation...");
+        console.log("Transaction submitted with wrapped UUID:", signResult.id);
+        console.log("Waiting 3 seconds for ledger confirmation...");
         
         await new Promise(resolve => setTimeout(resolve, 3000));
         
-        console.log("🔍 Checking if EscrowFinish succeeded on the ledger...");
+        console.log("Checking if EscrowFinish succeeded on the ledger...");
         
         try {
           const xrpl = await import('xrpl');
@@ -302,13 +302,13 @@ export default function EscrowManagementPage() {
           await client.disconnect();
           
           if (escrowStillExists) {
-            console.log("❌ Escrow still exists - transaction may have failed");
+            console.log("Escrow still exists - transaction may have failed");
             setResult({
               success: false,
               message: "Transaction was submitted but the escrow still exists on the ledger. It may have failed. Please verify on XRPL Explorer.",
             });
           } else {
-            console.log("✅ Escrow no longer exists - transaction succeeded!");
+            console.log("Escrow no longer exists - transaction succeeded!");
             setResult({
               success: true,
               message: "Escrow finished successfully! Funds have been released to the seller.",
@@ -326,17 +326,17 @@ export default function EscrowManagementPage() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ escrowFinished: true }),
                     });
-                    console.log("✅ Purchase marked as complete:", purchase.id);
+                    console.log("Purchase marked as complete:", purchase.id);
                   }
                 }
               }
             } catch (purchaseErr) {
-              console.warn("⚠️ Could not update purchase status:", purchaseErr);
+              console.warn("Could not update purchase status:", purchaseErr);
             }
           }
           
         } catch (checkError) {
-          console.error("⚠️ Could not verify transaction status:", checkError);
+          console.error("Could not verify transaction status:", checkError);
           setResult({
             success: false,
             message: "Transaction submitted but could not verify status. Please check XRPL Explorer to confirm.",
@@ -355,16 +355,16 @@ export default function EscrowManagementPage() {
           try {
             const decoded = atob(signResult.response.data);
             actualResponse = JSON.parse(decoded);
-            console.log("🔓 Decoded response:", actualResponse);
+            console.log("Decoded response:", actualResponse);
           } catch (e) {
-            console.log("⚠️ Could not decode base64 response, using raw data");
+            console.log("Could not decode base64 response, using raw data");
           }
         }
 
         // Check if Crossmark returned an error
         const crossmarkError = actualResponse?.error || signResult?.error || signResult?.response?.error;
         if (crossmarkError) {
-          console.error("❌ Crossmark returned an error:", crossmarkError);
+          console.error("Crossmark returned an error:", crossmarkError);
           const errorMessage = typeof crossmarkError === 'string' 
             ? crossmarkError 
             : crossmarkError.message || 'Unknown error';
@@ -396,8 +396,8 @@ export default function EscrowManagementPage() {
           (actualResponse as any)?.engine_result_code;
       }
 
-      console.log("🔑 Final Hash:", txHash);
-      console.log("📋 Final Result:", txResult);
+      console.log("Final Hash:", txHash);
+      console.log("Final Result:", txResult);
 
       // Process the result
       if (txResult === "tesSUCCESS") {
@@ -419,12 +419,12 @@ export default function EscrowManagementPage() {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ escrowFinished: true }),
                 });
-                console.log("✅ Purchase marked as complete:", purchase.id);
+                console.log("Purchase marked as complete:", purchase.id);
               }
             }
           }
         } catch (purchaseErr) {
-          console.warn("⚠️ Could not update purchase status:", purchaseErr);
+          console.warn("Could not update purchase status:", purchaseErr);
         }
       } else if (txResult) {
         // Transaction was processed but failed
@@ -448,7 +448,7 @@ export default function EscrowManagementPage() {
         });
       }
     } catch (error: any) {
-      console.error("❌ Error finishing escrow:", error);
+      console.error("Error finishing escrow:", error);
       setResult({
         success: false,
         message: error.message || "Failed to finish escrow",
@@ -551,7 +551,7 @@ export default function EscrowManagementPage() {
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-yellow-800">
-                <strong>⏰ Timing Note:</strong>
+                <strong>Timing Note:</strong>
                 <br />
                 You can only finish an escrow AFTER the FinishAfter time (1 minute after creation for testing).
                 If you try before, it will fail with "escrowNotReady" error.
@@ -601,7 +601,7 @@ export default function EscrowManagementPage() {
                         result.success ? "text-green-900" : "text-red-900"
                       }`}
                     >
-                      {result.success ? "✅ Success!" : "❌ Failed"}
+                      {result.success ? "Success!" : "Failed"}
                     </p>
                     <p
                       className={`text-sm mt-1 ${
@@ -627,7 +627,7 @@ export default function EscrowManagementPage() {
           </div>
 
           <div className="mt-8 bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">📖 How to Find the Sequence Number</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">How to Find the Sequence Number</h2>
             <ol className="space-y-3 text-sm text-gray-700">
               <li className="flex items-start">
                 <span className="font-bold text-blue-600 mr-2">1.</span>

@@ -78,7 +78,7 @@ export default function MyPurchasesPage() {
   const handleDownload = async (purchase: Purchase) => {
     if (!purchase.escrowFinished) {
       alert(
-        '⚠️ Escrow Not Complete\n\n' +
+        'Escrow Not Complete\n\n' +
         'Please complete the escrow payment first before downloading.\n\n' +
         'Go to "Finish Escrow" page to release the payment and unlock your PDF.'
       );
@@ -86,7 +86,7 @@ export default function MyPurchasesPage() {
     }
 
     if (!purchase.pdfPath) {
-      alert('❌ No PDF file associated with this purchase.');
+      alert('No PDF file associated with this purchase.');
       return;
     }
 
@@ -112,7 +112,7 @@ export default function MyPurchasesPage() {
       URL.revokeObjectURL(url);
       
     } catch (err: any) {
-      alert(`❌ Download failed: ${err.message}`);
+      alert(`Download failed: ${err.message}`);
     }
   };
 

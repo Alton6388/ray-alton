@@ -115,21 +115,21 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       console.log('🔐 Step 1: Verifying Crossmark...');
       
       if (!window.crossmark || typeof window.crossmark !== 'object') {
-        alert('❌ Crossmark wallet not detected.\n\nPlease install Crossmark from: https://crossmark.io');
+        alert('Crossmark wallet not detected.\n\nPlease install Crossmark from: https://crossmark.io');
         return;
       }
       
       // Get current session info before connecting
       const currentSession = window.crossmark?.session;
-      console.log('📋 Current Crossmark session:', currentSession);
+      console.log('Current Crossmark session:', currentSession);
       
       // Check Testnet network
       const network = currentSession?.network || 'unknown';
-      console.log('🌐 Network detected:', network);
+      console.log('Network detected:', network);
     
       if (network && network.toString().toLowerCase().includes('main')) {
         alert(
-          '❌ WRONG NETWORK!\n\n' +
+          'WRONG NETWORK!\n\n' +
           'You are currently on MAINNET.\n' +
           'This marketplace requires TESTNET.\n\n' +
           'To switch to Testnet:\n' +
@@ -146,7 +146,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       // If network is not explicitly testnet, warn user
       if (network && !network.toString().toLowerCase().includes('test')) {
         const confirmContinue = confirm(
-          '⚠️ NETWORK WARNING\n\n' +
+          'NETWORK WARNING\n\n' +
           `Detected network: ${network}\n\n` +
           'This marketplace is designed for TESTNET.\n' +
           'Are you sure you want to continue?\n\n' +
@@ -160,13 +160,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       let buyerAddress = null;
       if (currentSession?.address) {
         buyerAddress = currentSession.address;
-        console.log('✅ Using existing session:', buyerAddress);
+        console.log('Using existing session:', buyerAddress);
       } else {
-        console.log('🔌 No active session, attempting connection...');
+        console.log('No active session, attempting connection...');
         
         if (typeof window.crossmark.connect !== 'function') {
           alert(
-            '❌ Crossmark connection method not available.\n\n' +
+            'Crossmark connection method not available.\n\n' +
             'Please:\n' +
             '1. Update Crossmark to the latest version\n' +
             '2. Make sure you are logged in\n' +
@@ -178,26 +178,26 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         try {
           // User to connect/approve
           const connectResult = await window.crossmark.connect();
-          console.log('✅ Connection result:', connectResult);
+          console.log('Connection result:', connectResult);
           
           // Get the session again
           const newSession = window.crossmark?.session;
           buyerAddress = newSession?.address || connectResult?.address;
           
           if (buyerAddress) {
-            console.log('✅ Successfully connected:', buyerAddress);
+            console.log('Successfully connected:', buyerAddress);
             localStorage.setItem('walletAddress', buyerAddress);
           }
         } catch (connectError: any) {
-          console.error('❌ Connection failed:', connectError);
+          console.error('Connection failed:', connectError);
           
           if (connectError.message?.includes('rejected') || connectError.message?.includes('cancelled')) {
-            alert('❌ Connection cancelled. Please approve the connection to continue.');
+            alert('Connection cancelled. Please approve the connection to continue.');
             return;
           }
           
           alert(
-            '❌ Failed to connect to Crossmark.\n\n' +
+            'Failed to connect to Crossmark.\n\n' +
             'Error: ' + (connectError.message || 'Unknown error') + '\n\n' +
             'Please try:\n' +
             '1. Open Crossmark extension\n' +
@@ -211,7 +211,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     
       if (!buyerAddress) {
         alert(
-          '❌ Could not get wallet address.\n\n' +
+          'Could not get wallet address.\n\n' +
           'Please:\n' +
           '1. Open Crossmark extension\n' +
           '2. Make sure you are logged in\n' +
@@ -229,11 +229,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         buyerAddress = verifySession; 
       }
       
-      console.log('✅ Verified buyer address:', buyerAddress);
-      console.log('🔐 Current Crossmark session:', window.crossmark?.session);
+      console.log('Verified buyer address:', buyerAddress);
+      console.log('Current Crossmark session:', window.crossmark?.session);
       const sellerAddress = product.seller || buyerAddress;
       
-      console.log(`🛒 Creating escrow from ${buyerAddress} to ${sellerAddress}`);
+      console.log(`Creating escrow from ${buyerAddress} to ${sellerAddress}`);
     
       const RIPPLE_EPOCH_OFFSET = 946684800; 
       const now = Math.floor(Date.now() / 1000) - RIPPLE_EPOCH_OFFSET;
@@ -241,7 +241,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       const cancelAfter = now + (7 * 86400); 
       
       // Generate Preimage SHA256 for condition-based escrow
-      console.log('🔐 Generating preimage SHA256...');
+      console.log('Generating preimage SHA256...');
       let condition: string | undefined;
       let fulfillmentHex: string | undefined;
 
@@ -259,7 +259,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         condition = preimageData.condition;
         fulfillmentHex = preimageData.fulfillmentHex;
         
-        console.log('✅ Preimage generated:');
+        console.log('Preimage generated:');
         console.log(`  Condition: ${condition?.slice(0, 20)}...`);
         console.log(`  Fulfillment: ${fulfillmentHex?.slice(0, 20)}...`);
         
@@ -267,28 +267,28 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           localStorage.setItem(`escrow_fulfillment_${productId}`, fulfillmentHex);
         }
       } catch (err: any) {
-        console.warn('⚠️ Could not generate preimage:', err.message);
+        console.warn('Could not generate preimage:', err.message);
       }
 
       // Convert back to Unix timestamp for display
       const finishAfterDate = new Date((finishAfter + RIPPLE_EPOCH_OFFSET) * 1000);
       const cancelAfterDate = new Date((cancelAfter + RIPPLE_EPOCH_OFFSET) * 1000);
       
-      console.log(`⏰ FinishAfter: ${finishAfter} (Ripple time) = ${finishAfterDate.toLocaleString()}`);
-      console.log(`⏰ CancelAfter: ${cancelAfter} (Ripple time) = ${cancelAfterDate.toLocaleString()}`);
+      console.log(`FinishAfter: ${finishAfter} (Ripple time) = ${finishAfterDate.toLocaleString()}`);
+      console.log(`CancelAfter: ${cancelAfter} (Ripple time) = ${cancelAfterDate.toLocaleString()}`);
       
       // Determine currency and amount format
       const currency = product.currency || 'XRP';
       let amount: string | object;
       
-      console.log(`💰 Product currency: ${currency}, Price: ${price}`);
+      console.log(`Product currency: ${currency}, Price: ${price}`);
       
       if (currency === 'XRP') {
         // XRP: convert to drops (1 XRP = 1,000,000 drops)
         // MUST be a string
         const drops = Math.floor(price * 1000000);
         amount = drops.toString();
-        console.log(`💵 XRP Amount: ${amount} drops (${price} XRP)`);
+        console.log(`XRP Amount: ${amount} drops (${price} XRP)`);
       } else if (currency === 'RLUSD') {
         // RLUSD: use issued currency format
         amount = {
@@ -298,12 +298,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           // RLUSD issuer on testnet
           issuer: 'rLsREnvy59zduBugz9Vzz8UShpNU4kj11D' 
         };
-        console.log(`💵 RLUSD Amount:`, amount);
+        console.log(`RLUSD Amount:`, amount);
       } else {
         // Default to XRP if currency is unknown
         const drops = Math.floor(price * 1000000);
         amount = drops.toString();
-        console.log(`💵 Default to XRP: ${amount} drops`);
+        console.log(`Default to XRP: ${amount} drops`);
       }
 
       const tx = {
@@ -317,22 +317,22 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         Fee: '12'
       };
 
-      console.log('📝 Creating escrow transaction:', JSON.stringify(tx, null, 2));
+      console.log('Creating escrow transaction:', JSON.stringify(tx, null, 2));
       
       // Re-verify the address before signing
       const lastMinuteCheck = window.crossmark?.session?.address;
       if (!lastMinuteCheck) {
-        alert('❌ Crossmark session lost. Please refresh and try again.');
+        alert('Crossmark session lost. Please refresh and try again.');
         return;
       }
       
       if (lastMinuteCheck !== buyerAddress) {
-        console.error('❌ ADDRESS MISMATCH!');
+        console.error('ADDRESS MISMATCH!');
         console.error('  App thinks buyer is:', buyerAddress);
         console.error('  Crossmark active wallet:', lastMinuteCheck);
         
         alert(
-          '❌ WALLET MISMATCH!\n\n' +
+          'WALLET MISMATCH!\n\n' +
           `The app detected: ${buyerAddress.slice(0, 20)}...\n` +
           `But Crossmark is using: ${lastMinuteCheck.slice(0, 20)}...\n\n` +
           'Please:\n' +
@@ -343,8 +343,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         return;
       }
       
-      console.log('✅ Address verified - Buyer:', buyerAddress);
-      console.log('✅ Crossmark session matches!');
+      console.log('Address verified - Buyer:', buyerAddress);
+      console.log('Crossmark session matches!');
       let signResult;
       
       // Log available methods
@@ -379,7 +379,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       } else {
         const availableMethods = Object.keys(window.crossmark || {}).join(', ');
         alert(
-          `❌ Crossmark signing method not available.\n\n` +
+          `Crossmark signing method not available.\n\n` +
           `Available methods: ${availableMethods}\n\n` +
           `Please update Crossmark to the latest version:\nhttps://crossmark.io`
         );
@@ -413,7 +413,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         signResult?.engine_result ||
         signResult?.result?.engine_result;
 
-      console.log('📊 Transaction Details:', {
+      console.log('Transaction Details:', {
         hash: txHash,
         result: txResult,
         resultCode: resultCode,
@@ -424,7 +424,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         // Check if transaction failed
         if (txResult && txResult !== 'tesSUCCESS') {
           alert(
-            `❌ Transaction Failed!\n\n` +
+            `Transaction Failed!\n\n` +
             `Transaction Hash: ${txHash}\n` +
             `Error Code: ${txResult}\n` +
             `Result: ${resultCode || 'Unknown'}\n\n` +
@@ -440,11 +440,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         
         const successMessage = txResult === 'tesSUCCESS' ? 'Successfully Created!' : 'Submitted!';
         alert(
-          `✅ Escrow ${successMessage}\n\n` +
+          `Escrow ${successMessage}\n\n` +
           `Transaction Hash: ${txHash}\n` +
           `Amount: ${price} ${currency}\n` +
           `Seller: ${sellerAddress}\n\n` +
-          `⏰ Timing:\n` +
+          `Timing:\n` +
           `• Funds can be released: After 1 minute\n` +
           `• Buyer can cancel: After 7 days\n\n` +
           `The seller can claim funds after 1 minute!\n\n` +
@@ -452,7 +452,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         );
         if (fulfillmentHex && txHash) {
           try {
-            console.log('💾 Storing fulfillment in database...');
+            console.log('Storing fulfillment in database...');
             
             const actualSequence = 
               signResult?.response?.data?.resp?.result?.Sequence || 
@@ -462,7 +462,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               signResult?.result?.tx_json?.Sequence ||
               signResult?.Sequence;
 
-            console.log('📝 Fulfillment data to store:', {
+            console.log('Fulfillment data to store:', {
               txHash,
               ownerAddress: buyerAddress,
               offerSequence: actualSequence,
@@ -472,7 +472,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             // Only store if we have all required fields
             if (!actualSequence) {
-              console.warn('⚠️ Could not extract sequence number from response');
+              console.warn('Could not extract sequence number from response');
               console.log('Full signResult:', JSON.stringify(signResult, null, 2));
             }
 
@@ -490,7 +490,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             if (storeResponse.ok) {
               const storeData = await storeResponse.json();
-              console.log('✅ Fulfillment stored in database:', storeData);
+              console.log('Fulfillment stored in database:', storeData);
               // Record the purchase so buyer can download the PDF after escrow
               try {
                 const purchaseRes = await fetch('/api/purchases', {
@@ -505,41 +505,41 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 });
                 if (purchaseRes.ok) {
                   const purchaseData = await purchaseRes.json();
-                  console.log('✅ Purchase recorded:', purchaseData);
+                  console.log('Purchase recorded:', purchaseData);
                 } else {
-                  console.warn('⚠️ Could not record purchase:', await purchaseRes.text());
+                  console.warn('Could not record purchase:', await purchaseRes.text());
                 }
               } catch (pErr) {
-                console.warn('⚠️ Purchase record failed:', pErr);
+                console.warn('Purchase record failed:', pErr);
               }
             } else {
               const error = await storeResponse.json();
-              console.warn('⚠️ Could not store fulfillment:', error.error);
+              console.warn('Could not store fulfillment:', error.error);
             }
           } catch (err: any) {
-            console.warn('⚠️ Could not store fulfillment:', err.message);
+            console.warn('Could not store fulfillment:', err.message);
           }
         }
       } else {
         console.warn('Transaction result:', signResult);
         alert(
-          `⚠️ Transaction may have been submitted.\n\n` +
+          `Transaction may have been submitted.\n\n` +
           `Please check your Crossmark wallet history to confirm.\n\n` +
           `If you see a transaction, it was successful!`
         );
       }
       
     } catch (error: any) {
-      console.error('❌ Error creating escrow:', error);
+      console.error('Error creating escrow:', error);
       
       const errorMsg = error.message || error.toString() || '';
       
       // Handle specific error types
       if (errorMsg.includes('user rejected') || errorMsg.includes('rejected') || errorMsg.includes('cancelled')) {
-        alert('❌ Transaction cancelled by user.');
+        alert('Transaction cancelled by user.');
       } else if (errorMsg.includes('card') || errorMsg.includes('account address') || errorMsg.includes('payload')) {
         alert(
-          '❌ Crossmark Session Error\n\n' +
+          'Crossmark Session Error\n\n' +
           'Could not verify your wallet connection.\n\n' +
           'Please try:\n' +
           '1. Close Crossmark extension completely\n' +
@@ -553,13 +553,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         );
       } else if (errorMsg.includes('insufficient') || errorMsg.includes('balance')) {
         alert(
-          '❌ Insufficient Balance\n\n' +
+          'Insufficient Balance\n\n' +
           `You need at least ${price + 25} XRP for this transaction.\n\n` +
           'Fund your wallet at:\nhttps://xrpl.org/xrp-testnet-faucet.html'
         );
       } else {
         alert(
-          `❌ Transaction failed\n\n` +
+          `Transaction failed\n\n` +
           `Error: ${errorMsg}\n\n` +
           `Common solutions:\n` +
           `• Make sure you have enough XRP (need ${price + 25} XRP)\n` +

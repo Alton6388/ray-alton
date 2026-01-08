@@ -139,10 +139,10 @@ export default function ListBookPage() {
       }
       
       const uploadData = await uploadRes.json();
-      console.log("✅ PDF uploaded:", uploadData);
+      console.log("PDF uploaded:", uploadData);
 
       // Step 2: Create product in database
-      console.log("📚 Creating product listing...");
+      console.log("Creating product listing...");
       const productRes = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,7 +163,7 @@ export default function ListBookPage() {
       }
 
       const product = await productRes.json();
-      console.log("✅ Product created:", product);
+      console.log("Product created:", product);
 
       // Reset form
       setFormData({
@@ -179,7 +179,7 @@ export default function ListBookPage() {
       }
 
       alert(
-        `✅ E-Book listed successfully!\n\n` +
+        `E-Book listed successfully!\n\n` +
         `Product ID: ${product.id}\n` +
         `Title: ${product.title}\n` +
         `Price: ${product.price} RLUSD\n\n` +
@@ -187,9 +187,9 @@ export default function ListBookPage() {
       );
 
     } catch (err: any) {
-      console.error("❌ Error:", err);
+      console.error("Error:", err);
       setErrors([err.message || 'An error occurred']);
-      alert(`❌ Error: ${err.message}`);
+      alert(`Error: ${err.message}`);
     } finally {
       setIsUploading(false);
     }
