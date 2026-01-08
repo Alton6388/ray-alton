@@ -229,7 +229,7 @@ This project is licensed under the ISC License.
 
 ## 🏆 Hackathon Project
 
-Built for [Hackathon Name] 2026 to demonstrate secure decentralized commerce on XRPL.
+Built for NUS Fintech Summit 2026 to demonstrate secure decentralized commerce on XRPL.
 
 ### Team
 - **Developers**: Ray & Alton
