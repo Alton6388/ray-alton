@@ -12,7 +12,7 @@ export function useCrossmarkReady() {
 
   useEffect(() => {
     let attempts = 0;
-    const maxAttempts = 40; // 20 seconds max (500ms * 40)
+    const maxAttempts = 40;
     
     const checkCrossmark = () => {
       attempts++;
@@ -45,7 +45,7 @@ export function useCrossmarkReady() {
           setError('Crossmark extension not detected. Please install it from crossmark.io');
         }
         console.warn('⚠️ Crossmark initialization timeout');
-        return true; // Stop checking
+        return true;
       }
       
       return false;

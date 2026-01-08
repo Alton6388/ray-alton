@@ -3,7 +3,8 @@ export interface EBook {
   title: string;
   author: string;
   genre: string;
-  price: number; // in RLUSD
+  price: number;
+  currency: 'RLUSD' | 'XRP';
   coverImageUrl: string;
   seller: string; // XRPL address
 }

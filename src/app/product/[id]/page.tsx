@@ -10,10 +10,7 @@ import { useCrossmarkReady } from "@/hooks/useCrossmarkReady";
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const productId = params.id;
-
-  const product = mockBooks.find((b: any) => b.id === productId);
-
-  // Use the robust Crossmark initialization hook
+  const product = mockBooks.find((p: any) => p.id === productId);
   const { isReady: crossmarkReady } = useCrossmarkReady();
 
   if (!product) {
@@ -25,16 +22,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">E-Book Not Found</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Product Not Found</h2>
             <p className="text-gray-600 mb-6">
-              The e-book you're looking for doesn't exist or has been removed.
+              The product you're looking for doesn't exist or has been removed.
             </p>
             <button
               onClick={() => router.push("/")}
               className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to E-Books</span>
+              <span>Back to Marketplace</span>
             </button>
           </div>
         </div>
@@ -42,17 +39,35 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     );
   }
 
+  async function fetchTxHashWithRetry(txId: string, retries = 5, delay = 2000) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const res = await fetch(`/api/tx-hash?txId=${txId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hash) {
+            console.log(`Fetched txHash on attempt ${i + 1}:`, data.hash);
+            return data.hash;
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching txHash:', err);
+      }
+      await new Promise(r => setTimeout(r, delay));
+    }
+    console.warn('Failed to fetch txHash after retries');
+    return null;
+  }
+
   const handleBuyNow = async (productId: string, price: number) => {
     console.log(`Buy Now clicked for product ${productId} at ${price} XRP`);
     
-    // Check if Crossmark is ready (using robust initialization)
     if (!crossmarkReady || !window.crossmark) {
       alert('⚠️ Crossmark wallet not ready.\n\nPlease wait for the extension to load, or install it from: https://crossmark.io');
       return;
     }
 
     try {
-      // Step 1: Verify Crossmark is ready
       console.log('🔐 Step 1: Verifying Crossmark...');
       
       if (!window.crossmark || typeof window.crossmark !== 'object') {
@@ -60,15 +75,14 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         return;
       }
       
-      // Step 2: Get current session info FIRST (before connecting)
+      // Get current session info before connecting
       const currentSession = window.crossmark?.session;
       console.log('📋 Current Crossmark session:', currentSession);
       
-      // CRITICAL: Check network - must be on Testnet!
+      // Check Testnet network
       const network = currentSession?.network || 'unknown';
       console.log('🌐 Network detected:', network);
-      
-      // Check if we're on the wrong network
+    
       if (network && network.toString().toLowerCase().includes('main')) {
         alert(
           '❌ WRONG NETWORK!\n\n' +
@@ -99,16 +113,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         }
       }
       
-      // Step 3: Check if we need to connect
       let buyerAddress = null;
-      
-      // If there's already a session, use it (don't reconnect unnecessarily)
       if (currentSession?.address) {
         buyerAddress = currentSession.address;
         console.log('✅ Using existing session:', buyerAddress);
-      }
-      // If no session, try to connect
-      else {
+      } else {
         console.log('🔌 No active session, attempting connection...');
         
         if (typeof window.crossmark.connect !== 'function') {
@@ -123,11 +132,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         }
         
         try {
-          // Ask user to connect/approve
+          // User to connect/approve
           const connectResult = await window.crossmark.connect();
           console.log('✅ Connection result:', connectResult);
           
-          // After connecting, get the session again
+          // Get the session again
           const newSession = window.crossmark?.session;
           buyerAddress = newSession?.address || connectResult?.address;
           
@@ -155,8 +164,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           return;
         }
       }
-      
-      // Step 4: Final verification
+    
       if (!buyerAddress) {
         alert(
           '❌ Could not get wallet address.\n\n' +
@@ -170,30 +178,54 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         return;
       }
       
-      // Step 5: Verify the address matches Crossmark's current session
+      // Verify the address matches Crossmark's current session
       const verifySession = window.crossmark?.session?.address;
       if (verifySession && verifySession !== buyerAddress) {
         console.warn('⚠️ Address mismatch detected!', { buyerAddress, verifySession });
-        buyerAddress = verifySession; // Use the session address
+        buyerAddress = verifySession; 
       }
       
       console.log('✅ Verified buyer address:', buyerAddress);
       console.log('🔐 Current Crossmark session:', window.crossmark?.session);
-
-      // For testing: Use buyer's address as seller if seller is not activated
-      // In production, you would check if the seller address is activated via API call
-      const sellerAddress = product.seller || buyerAddress; // Fallback to buyer's address for testing
+      const sellerAddress = product.seller || buyerAddress;
       
       console.log(`🛒 Creating escrow from ${buyerAddress} to ${sellerAddress}`);
-      
-      // CRITICAL FIX: Convert to Ripple Epoch time
-      // XRPL time starts from January 1, 2000 (not January 1, 1970 like Unix)
-      // We need to subtract 946,684,800 seconds (30 years) to convert properly
-      const RIPPLE_EPOCH_OFFSET = 946684800; // Seconds between Unix epoch (1970) and Ripple epoch (2000)
+    
+      const RIPPLE_EPOCH_OFFSET = 946684800; 
       const now = Math.floor(Date.now() / 1000) - RIPPLE_EPOCH_OFFSET;
-      const finishAfter = now + (1 * 60); // Funds can be released after 1 minute (for testing)
-      const cancelAfter = now + (7 * 86400); // Buyer can cancel after 7 days
+      const finishAfter = now + (1 * 60); 
+      const cancelAfter = now + (7 * 86400); 
       
+      // Generate Preimage SHA256 for condition-based escrow
+      console.log('🔐 Generating preimage SHA256...');
+      let condition: string | undefined;
+      let fulfillmentHex: string | undefined;
+
+      try {
+        const preimageResponse = await fetch('/api/escrow/generate-preimage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        
+        if (!preimageResponse.ok) {
+          throw new Error('Failed to generate preimage');
+        }
+        
+        const preimageData = await preimageResponse.json();
+        condition = preimageData.condition;
+        fulfillmentHex = preimageData.fulfillmentHex;
+        
+        console.log('✅ Preimage generated:');
+        console.log(`  Condition: ${condition?.slice(0, 20)}...`);
+        console.log(`  Fulfillment: ${fulfillmentHex?.slice(0, 20)}...`);
+        
+        if (fulfillmentHex) {
+          localStorage.setItem(`escrow_fulfillment_${productId}`, fulfillmentHex);
+        }
+      } catch (err: any) {
+        console.warn('⚠️ Could not generate preimage:', err.message);
+      }
+
       // Convert back to Unix timestamp for display
       const finishAfterDate = new Date((finishAfter + RIPPLE_EPOCH_OFFSET) * 1000);
       const cancelAfterDate = new Date((cancelAfter + RIPPLE_EPOCH_OFFSET) * 1000);
@@ -201,19 +233,34 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       console.log(`⏰ FinishAfter: ${finishAfter} (Ripple time) = ${finishAfterDate.toLocaleString()}`);
       console.log(`⏰ CancelAfter: ${cancelAfter} (Ripple time) = ${cancelAfterDate.toLocaleString()}`);
       
-      // E-books use RLUSD
-      const currency = 'RLUSD';
+      // Determine currency and amount format
+      const currency = product.currency || 'XRP';
       let amount: string | object;
       
-      console.log(`💰 E-book currency: ${currency}, Price: ${price}`);
+      console.log(`💰 Product currency: ${currency}, Price: ${price}`);
       
-      // E-books use RLUSD (issued currency)
-      amount = {
-        currency: '534D41525400000000000000000000000000000000', // "RLUSD" in hex
-        value: price.toString(),
-        issuer: 'rLsREnvy59zduBugz9Vzz8UShpNU4kj11D' // RLUSD issuer on testnet
-      };
-      console.log(`💵 RLUSD Amount:`, amount);
+      if (currency === 'XRP') {
+        // XRP: convert to drops (1 XRP = 1,000,000 drops)
+        // MUST be a string
+        const drops = Math.floor(price * 1000000);
+        amount = drops.toString();
+        console.log(`💵 XRP Amount: ${amount} drops (${price} XRP)`);
+      } else if (currency === 'RLUSD') {
+        // RLUSD: use issued currency format
+        amount = {
+          // "RLUSD" in hex
+          currency: '534D41525400000000000000000000000000000000', 
+          value: price.toString(),
+          // RLUSD issuer on testnet
+          issuer: 'rLsREnvy59zduBugz9Vzz8UShpNU4kj11D' 
+        };
+        console.log(`💵 RLUSD Amount:`, amount);
+      } else {
+        // Default to XRP if currency is unknown
+        const drops = Math.floor(price * 1000000);
+        amount = drops.toString();
+        console.log(`💵 Default to XRP: ${amount} drops`);
+      }
 
       const tx = {
         TransactionType: 'EscrowCreate',
@@ -222,12 +269,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         Destination: sellerAddress,
         FinishAfter: finishAfter,
         CancelAfter: cancelAfter,
-        Fee: '12' // Basic fee in drops
+        ...(condition && { Condition: condition }), 
+        Fee: '12'
       };
 
       console.log('📝 Creating escrow transaction:', JSON.stringify(tx, null, 2));
       
-      // CRITICAL: Re-verify the address RIGHT before signing
+      // Re-verify the address before signing
       const lastMinuteCheck = window.crossmark?.session?.address;
       if (!lastMinuteCheck) {
         alert('❌ Crossmark session lost. Please refresh and try again.');
@@ -253,8 +301,6 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       
       console.log('✅ Address verified - Buyer:', buyerAddress);
       console.log('✅ Crossmark session matches!');
-
-      // Try different Crossmark API methods based on what's available
       let signResult;
       
       // Log available methods
@@ -262,8 +308,17 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       console.log('Available methods.* :', window.crossmark?.methods ? Object.keys(window.crossmark.methods) : 'none');
       console.log('Available async.* :', window.crossmark?.async ? Object.keys(window.crossmark.async) : 'none');
       
-      if (typeof window.crossmark.signAndSubmit === 'function') {
-        console.log('Using signAndSubmit method');
+      if (typeof window.crossmark.signAndSubmitAndWait === 'function') {
+        console.log('Using signAndSubmitAndWait method');
+        signResult = await window.crossmark.signAndSubmitAndWait(tx);
+      } else if (window.crossmark.methods?.signAndSubmitAndWait) {
+        console.log('Using methods.signAndSubmitAndWait');
+        signResult = await window.crossmark.methods.signAndSubmitAndWait(tx);
+      } else if (window.crossmark.async?.signAndSubmitAndWait) {
+        console.log('Using async.signAndSubmitAndWait');
+        signResult = await window.crossmark.async.signAndSubmitAndWait(tx);
+      } else if (typeof window.crossmark.signAndSubmit === 'function') {
+        console.log('Using signAndSubmit method (fallback)');
         signResult = await window.crossmark.signAndSubmit(tx);
       } else if (typeof window.crossmark.sign === 'function') {
         console.log('Using sign method');
@@ -278,7 +333,6 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         console.log('Using async.signAndSubmit');
         signResult = await window.crossmark.async.signAndSubmit(tx);
       } else {
-        // Show available methods to user
         const availableMethods = Object.keys(window.crossmark || {}).join(', ');
         alert(
           `❌ Crossmark signing method not available.\n\n` +
@@ -289,14 +343,19 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       }
       
       console.log('Transaction result:', signResult);
-
-      // Check if transaction was successful (handle different response formats)
-      const txHash = 
-        signResult?.response?.data?.resp?.result?.hash ||
+      
+       let txHash = 
+        signResult?.response?.data?.resp?.result?.hash ||  
+        signResult?.data?.resp?.result?.hash ||
+        signResult?.data?.resp?.hash ||  
+        signResult?.response?.data?.resp?.hash ||
         signResult?.response?.data?.hash ||
         signResult?.hash ||
-        signResult?.id ||
         signResult?.result?.hash;
+
+      if (!txHash && typeof signResult === 'string' && signResult.includes('-')) {
+        txHash = await fetchTxHashWithRetry(signResult, 5, 2000);
+      }
       
       const txResult = 
         signResult?.response?.data?.resp?.result?.meta?.TransactionResult ||
@@ -347,6 +406,55 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           `The seller can claim funds after 1 minute!\n\n` +
           `View on Explorer:\nhttps://testnet.xrpl.org/transactions/${txHash}`
         );
+        if (fulfillmentHex && txHash) {
+          try {
+            console.log('💾 Storing fulfillment in database...');
+            
+            const actualSequence = 
+              signResult?.response?.data?.resp?.result?.Sequence || 
+              signResult?.data?.resp?.result?.Sequence ||
+              signResult?.data?.resp?.Sequence ||
+              signResult?.result?.Sequence ||
+              signResult?.result?.tx_json?.Sequence ||
+              signResult?.Sequence;
+
+            console.log('📝 Fulfillment data to store:', {
+              txHash,
+              ownerAddress: buyerAddress,
+              offerSequence: actualSequence,
+              condition: condition?.slice(0, 20) + '...',
+              fulfillmentHex: fulfillmentHex?.slice(0, 20) + '...',
+            });
+
+            // Only store if we have all required fields
+            if (!actualSequence) {
+              console.warn('⚠️ Could not extract sequence number from response');
+              console.log('Full signResult:', JSON.stringify(signResult, null, 2));
+            }
+
+            const storeResponse = await fetch('/api/escrow/store-fulfillment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                txHash,
+                ownerAddress: buyerAddress,
+                offerSequence: actualSequence,
+                condition,
+                fulfillmentHex,
+              }),
+            });
+
+            if (storeResponse.ok) {
+              const storeData = await storeResponse.json();
+              console.log('✅ Fulfillment stored in database:', storeData);
+            } else {
+              const error = await storeResponse.json();
+              console.warn('⚠️ Could not store fulfillment:', error.error);
+            }
+          } catch (err: any) {
+            console.warn('⚠️ Could not store fulfillment:', err.message);
+          }
+        }
       } else {
         console.warn('Transaction result:', signResult);
         alert(

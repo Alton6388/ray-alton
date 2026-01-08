@@ -47,7 +47,7 @@ export const mockProducts: Product[] = [
     image: "https://images.unsplash.com/photo-1460925895917-aeb19be489c7?w=500&h=500&fit=crop",
     rating: 4.5,
     sales: 650,
-    seller: "rpVh7YjJTokEm5GSAVbSP6JSCVH1XKuDxN",
+    seller: "r66iGAiNwGZc11woxWbkeYDhFXeiFTDyb",
   },
   {
     id: "5",
