@@ -1,17 +1,18 @@
 "use client";
 
-import { Product } from "../types/Product";
+import { EBook } from "../types/EBook";
 import {
-  Package,
-  HardDrive,
+  BookOpen,
   Shield,
   Clock,
   Download,
   Check,
+  User,
+  Tags,
 } from "lucide-react";
 
 interface ProductDetailsProps {
-  product: Product;
+  product: EBook;
   onBuyNow: (productId: string, price: number) => void;
 }
 
@@ -22,11 +23,11 @@ export default function ProductDetails({
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
       <div className="grid lg:grid-cols-5">
-        {/* Image */}
+        {/* Cover Image */}
         <div className="lg:col-span-2 relative h-96 lg:h-auto bg-gradient-to-br from-gray-50 to-gray-100">
           <img
-            src={product.image || product.imageUrl}
-            alt={product.name}
+            src={product.coverImageUrl}
+            alt={product.title}
             className="w-full h-full object-cover"
           />
 
@@ -44,56 +45,53 @@ export default function ProductDetails({
 
         {/* Details */}
         <div className="lg:col-span-3 p-8 lg:p-10">
-          {/* Category */}
+          {/* Genre */}
           <div className="inline-flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full mb-4">
-            <Package className="w-4 h-4 text-blue-600" />
+            <Tags className="w-4 h-4 text-blue-600" />
             <span className="text-sm text-blue-700 font-semibold uppercase tracking-wide">
-              {product.category}
+              {product.genre}
             </span>
           </div>
 
-          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            {product.name}
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+            {product.title}
           </h1>
 
+          {/* Author */}
+          <div className="flex items-center space-x-2 text-gray-600 mb-6 pb-6 border-b border-gray-200">
+            <User className="w-5 h-5" />
+            <span className="text-lg font-medium">by {product.author}</span>
+          </div>
+
           {/* Price */}
-          <div className="flex items-baseline space-x-3 mb-6 pb-6 border-b border-gray-200">
+          <div className="flex items-baseline space-x-3 mb-8">
             <span className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {product.price}
+              {product.price.toFixed(2)}
             </span>
             <span className="text-2xl text-gray-500 font-medium">RLUSD</span>
           </div>
 
-          {/* Description */}
-          <p className="text-gray-700 leading-relaxed mb-8">
-            {product.description}
-          </p>
-
-          {/* File Info */}
+          {/* Book Info */}
           <div className="grid grid-cols-2 gap-4 mb-8">
-            {product.fileSize && (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center space-x-2 text-gray-500 mb-2">
-                  <HardDrive className="w-5 h-5" />
-                  <span className="text-sm font-medium">File Size</span>
-                </div>
-                <p className="text-xl font-bold text-gray-900">
-                  {product.fileSize}
-                </p>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center space-x-2 text-gray-500 mb-2">
+                <BookOpen className="w-5 h-5" />
+                <span className="text-sm font-medium">Format</span>
               </div>
-            )}
+              <p className="text-xl font-bold text-gray-900">
+                E-Book
+              </p>
+            </div>
 
-            {product.fileType && (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center space-x-2 text-gray-500 mb-2">
-                  <Package className="w-5 h-5" />
-                  <span className="text-sm font-medium">Format</span>
-                </div>
-                <p className="text-xl font-bold text-gray-900">
-                  {product.fileType}
-                </p>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center space-x-2 text-gray-500 mb-2">
+                <Tags className="w-5 h-5" />
+                <span className="text-sm font-medium">Genre</span>
               </div>
-            )}
+              <p className="text-xl font-bold text-gray-900">
+                {product.genre}
+              </p>
+            </div>
           </div>
 
           {/* Benefits */}
@@ -106,9 +104,9 @@ export default function ProductDetails({
             <ul className="space-y-2">
               {[
                 "Instant download after escrow confirmation",
-                "Full commercial license included",
-                "Lifetime access to updates",
-                "Priority customer support",
+                "Full access and ownership rights",
+                "Lifetime access to your purchase",
+                "Priority reader support",
               ].map((item, i) => (
                 <li key={i} className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5" />
@@ -141,7 +139,7 @@ export default function ProductDetails({
             onClick={() => onBuyNow(product.id, product.price)}
             className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white font-bold py-5 px-8 rounded-xl text-lg shadow-lg hover:shadow-2xl transition-all"
           >
-            Secure Purchase – {product.price} {product.currency || 'RLUSD'}
+            Purchase E-Book – {product.price.toFixed(2)} RLUSD
           </button>
 
           <p className="text-center text-xs text-gray-500 mt-4">

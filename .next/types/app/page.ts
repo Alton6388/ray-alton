@@ -1,4 +1,4 @@
-// File: /Users/altontan/Documents/GitHub/IS2108/ray-alton/src/app/page.tsx
+// File: C:\Users\leera\Downloads\fintech project\ray-alton\src\app\page.tsx
 import * as entry from '../../../src/app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
