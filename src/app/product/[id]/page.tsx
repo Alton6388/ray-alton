@@ -1,17 +1,61 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../../../components/Header";
 import ProductDetails from "../../../components/ProductDetails";
-import { mockBooks } from "../../../lib/mockBooks";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { useCrossmarkReady } from "@/hooks/useCrossmarkReady";
+
+interface Product {
+  id: string;
+  title: string;
+  author: string;
+  genre: string;
+  price: number;
+  coverImageUrl: string;
+  seller: string | null;
+  pdfPath: string | null;
+  currency?: "XRP" | "RLUSD";
+}
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const productId = params.id;
-  const product = mockBooks.find((p: any) => p.id === productId);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const { isReady: crossmarkReady } = useCrossmarkReady();
+
+  useEffect(() => {
+    loadProduct();
+  }, [productId]);
+
+  const loadProduct = async () => {
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        const products = await res.json();
+        const found = products.find((p: Product) => p.id === productId);
+        setProduct(found || null);
+      }
+    } catch (err) {
+      console.error('Failed to load product:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
+        <Header />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

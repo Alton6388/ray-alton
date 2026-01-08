@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // Allow large file uploads (500MB for PDFs)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '500mb',
+    },
+  },
   webpack: (config) => {
     // Add fallbacks for Node.js modules
     config.resolve.fallback = {

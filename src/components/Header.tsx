@@ -114,6 +114,11 @@ export default function Header() {
           <Link href="/escrow" className="text-gray-600 hover:text-gray-900">
             Finish Escrow
           </Link>
+          {isConnected && (
+            <Link href="/my-purchases" className="text-gray-600 hover:text-gray-900">
+              My Purchases
+            </Link>
+          )}
           
           {/* Wallet Connection */}
           {!isConnected ? (

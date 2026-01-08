@@ -4,7 +4,8 @@ export interface EBook {
   author: string;
   genre: string;
   price: number;
-  currency: 'RLUSD' | 'XRP';
+  currency?: 'RLUSD' | 'XRP';
   coverImageUrl: string;
-  seller: string; // XRPL address
+  seller: string | null; // XRPL address
+  pdfPath?: string | null;
 }

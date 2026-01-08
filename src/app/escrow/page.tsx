@@ -228,6 +228,26 @@ export default function EscrowManagementPage() {
               success: true,
               message: "Escrow finished successfully! Funds have been released to the seller.",
             });
+            
+            // Mark purchase as complete so buyer can download PDF
+            try {
+              const purchasesRes = await fetch(`/api/purchases?address=${buyerAddress}`);
+              if (purchasesRes.ok) {
+                const purchases = await purchasesRes.json();
+                for (const purchase of purchases) {
+                  if (!purchase.escrowFinished) {
+                    await fetch(`/api/purchases?id=${purchase.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ escrowFinished: true }),
+                    });
+                    console.log("✅ Purchase marked as complete:", purchase.id);
+                  }
+                }
+              }
+            } catch (purchaseErr) {
+              console.warn("⚠️ Could not update purchase status:", purchaseErr);
+            }
           }
           
         } catch (checkError) {
@@ -293,6 +313,26 @@ export default function EscrowManagementPage() {
               success: true,
               message: "Escrow finished successfully! Funds have been released to the seller.",
             });
+            
+            // Mark purchase as complete so buyer can download PDF
+            try {
+              const purchasesRes = await fetch(`/api/purchases?address=${buyerAddress}`);
+              if (purchasesRes.ok) {
+                const purchases = await purchasesRes.json();
+                for (const purchase of purchases) {
+                  if (!purchase.escrowFinished) {
+                    await fetch(`/api/purchases?id=${purchase.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ escrowFinished: true }),
+                    });
+                    console.log("✅ Purchase marked as complete:", purchase.id);
+                  }
+                }
+              }
+            } catch (purchaseErr) {
+              console.warn("⚠️ Could not update purchase status:", purchaseErr);
+            }
           }
           
         } catch (checkError) {
@@ -366,6 +406,26 @@ export default function EscrowManagementPage() {
           message: "Escrow finished successfully! Funds released to seller.",
           txHash: txHash,
         });
+        
+        // Mark purchase as complete so buyer can download PDF
+        try {
+          const purchasesRes = await fetch(`/api/purchases?address=${buyerAddress}`);
+          if (purchasesRes.ok) {
+            const purchases = await purchasesRes.json();
+            for (const purchase of purchases) {
+              if (!purchase.escrowFinished) {
+                await fetch(`/api/purchases?id=${purchase.id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ escrowFinished: true }),
+                });
+                console.log("✅ Purchase marked as complete:", purchase.id);
+              }
+            }
+          }
+        } catch (purchaseErr) {
+          console.warn("⚠️ Could not update purchase status:", purchaseErr);
+        }
       } else if (txResult) {
         // Transaction was processed but failed
         const userMessage = getTransactionErrorMessage(txResult);
