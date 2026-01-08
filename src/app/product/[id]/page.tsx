@@ -3,14 +3,14 @@
 import { useRouter } from "next/navigation";
 import Header from "../../../components/Header";
 import ProductDetails from "../../../components/ProductDetails";
-import { mockProducts } from "../../../lib/mockProducts";
+import { mockBooks } from "../../../lib/mockBooks";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { useCrossmarkReady } from "@/hooks/useCrossmarkReady";
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const productId = params.id;
-  const product = mockProducts.find((p: any) => p.id === productId);
+  const product = mockBooks.find((p: any) => p.id === productId);
   const { isReady: crossmarkReady } = useCrossmarkReady();
 
   if (!product) {
@@ -343,7 +343,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       }
       
       console.log('Transaction result:', signResult);
-
+      
        let txHash = 
         signResult?.response?.data?.resp?.result?.hash ||  
         signResult?.data?.resp?.result?.hash ||
@@ -409,9 +409,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         if (fulfillmentHex && txHash) {
           try {
             console.log('💾 Storing fulfillment in database...');
-          
+            
             const actualSequence = 
-              signResult?.response?.data?.resp?.result?.Sequence ||  
+              signResult?.response?.data?.resp?.result?.Sequence || 
               signResult?.data?.resp?.result?.Sequence ||
               signResult?.data?.resp?.Sequence ||
               signResult?.result?.Sequence ||
