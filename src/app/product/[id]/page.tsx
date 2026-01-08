@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Header from "../../../components/Header";
 import ProductDetails from "../../../components/ProductDetails";
-import { mockProducts } from "../../../lib/mockProducts";
+import { mockBooks } from "../../../lib/mockBooks";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { useCrossmarkReady } from "@/hooks/useCrossmarkReady";
 
@@ -11,7 +11,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const router = useRouter();
   const productId = params.id;
 
-  const product = mockProducts.find((p: any) => p.id === productId);
+  const product = mockBooks.find((b: any) => b.id === productId);
 
   // Use the robust Crossmark initialization hook
   const { isReady: crossmarkReady } = useCrossmarkReady();
@@ -25,16 +25,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Product Not Found</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">E-Book Not Found</h2>
             <p className="text-gray-600 mb-6">
-              The product you're looking for doesn't exist or has been removed.
+              The e-book you're looking for doesn't exist or has been removed.
             </p>
             <button
               onClick={() => router.push("/")}
               className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Marketplace</span>
+              <span>Back to E-Books</span>
             </button>
           </div>
         </div>
@@ -201,32 +201,19 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       console.log(`⏰ FinishAfter: ${finishAfter} (Ripple time) = ${finishAfterDate.toLocaleString()}`);
       console.log(`⏰ CancelAfter: ${cancelAfter} (Ripple time) = ${cancelAfterDate.toLocaleString()}`);
       
-      // Determine currency and amount format
-      const currency = product.currency || 'XRP';
+      // E-books use RLUSD
+      const currency = 'RLUSD';
       let amount: string | object;
       
-      console.log(`💰 Product currency: ${currency}, Price: ${price}`);
+      console.log(`💰 E-book currency: ${currency}, Price: ${price}`);
       
-      if (currency === 'XRP') {
-        // XRP: convert to drops (1 XRP = 1,000,000 drops)
-        // MUST be a string
-        const drops = Math.floor(price * 1000000);
-        amount = drops.toString();
-        console.log(`💵 XRP Amount: ${amount} drops (${price} XRP)`);
-      } else if (currency === 'RLUSD') {
-        // RLUSD: use issued currency format
-        amount = {
-          currency: '534D41525400000000000000000000000000000000', // "RLUSD" in hex
-          value: price.toString(),
-          issuer: 'rLsREnvy59zduBugz9Vzz8UShpNU4kj11D' // RLUSD issuer on testnet
-        };
-        console.log(`💵 RLUSD Amount:`, amount);
-      } else {
-        // Default to XRP if currency is unknown
-        const drops = Math.floor(price * 1000000);
-        amount = drops.toString();
-        console.log(`💵 Default to XRP: ${amount} drops`);
-      }
+      // E-books use RLUSD (issued currency)
+      amount = {
+        currency: '534D41525400000000000000000000000000000000', // "RLUSD" in hex
+        value: price.toString(),
+        issuer: 'rLsREnvy59zduBugz9Vzz8UShpNU4kj11D' // RLUSD issuer on testnet
+      };
+      console.log(`💵 RLUSD Amount:`, amount);
 
       const tx = {
         TransactionType: 'EscrowCreate',
