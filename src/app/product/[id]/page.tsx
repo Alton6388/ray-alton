@@ -447,6 +447,27 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             if (storeResponse.ok) {
               const storeData = await storeResponse.json();
               console.log('✅ Fulfillment stored in database:', storeData);
+              // Record the purchase so buyer can download the PDF after escrow
+              try {
+                const purchaseRes = await fetch('/api/purchases', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    buyer: buyerAddress,
+                    productId: productId,
+                    txHash,
+                    pdfPath: product.pdfPath || null,
+                  }),
+                });
+                if (purchaseRes.ok) {
+                  const purchaseData = await purchaseRes.json();
+                  console.log('✅ Purchase recorded:', purchaseData);
+                } else {
+                  console.warn('⚠️ Could not record purchase:', await purchaseRes.text());
+                }
+              } catch (pErr) {
+                console.warn('⚠️ Purchase record failed:', pErr);
+              }
             } else {
               const error = await storeResponse.json();
               console.warn('⚠️ Could not store fulfillment:', error.error);

@@ -95,6 +95,12 @@ export default function ListBookPage() {
     if (pdfFile) fd.append('pdfFile', pdfFile, pdfFile.name);
 
     try {
+      // Require connected wallet to list an item
+      const connectedAddress = window.crossmark?.session?.address || localStorage.getItem('walletAddress');
+      if (!connectedAddress) {
+        alert('Please connect your wallet before listing an item.');
+        return;
+      }
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
       if (!uploadRes.ok) throw new Error('Upload failed');
       const uploadData = await uploadRes.json();
@@ -108,6 +114,7 @@ export default function ListBookPage() {
         body: JSON.stringify({
           ...bookData,
           pdfPath,
+          seller: connectedAddress,
         }),
       });
       if (!productRes.ok) throw new Error('Product creation failed');
