@@ -23,7 +23,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Price */}
           <div className="absolute top-3 right-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full shadow-lg">
             <span className="text-lg font-bold">{product.price.toFixed(2)}</span>
-            <span className="text-xs ml-1 opacity-90">RLUSD</span>
+            <span className="text-xs ml-1 opacity-90">XRP</span>
           </div>
 
           {/* Genre */}
