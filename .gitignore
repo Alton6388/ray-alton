@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 node_modules/
 .npm
 
@@ -15,3 +15,6 @@ build/
 .vscode/
 .idea/
 *.swp
+
+# Coworker documentation
+debug-docs/

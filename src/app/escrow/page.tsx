@@ -18,7 +18,6 @@ export default function EscrowManagementPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; txHash?: string } | null>(null);
 
-  // Use the robust Crossmark initialization hook
   const { isReady: crossmarkReady, isInstalled, error: crossmarkError } = useCrossmarkReady();
 
   const handleFinishEscrow = async () => {
@@ -37,7 +36,7 @@ export default function EscrowManagementPage() {
     setResult(null);
 
     try {
-      // STEP 1: Verify the escrow exists and can be finished
+      // Verify the escrow exists and can be finished
       console.log("🔍 Step 1: Verifying escrow exists...");
       const escrowInfo = await verifyEscrow(ownerAddress, parseInt(offerSequence));
       
@@ -63,13 +62,13 @@ export default function EscrowManagementPage() {
       console.log(`💰 Amount: ${Number(escrowInfo.amount!) / 1_000_000} XRP`);
       console.log(`📍 Destination: ${escrowInfo.destination}`);
       
-      // Use the CORRECT sequence from the verification
+      // Use the correct sequence from the verification
       const correctSequence = escrowInfo.correctSequence || parseInt(offerSequence);
       if (correctSequence !== parseInt(offerSequence)) {
         console.log(`⚠️  Using corrected sequence: ${correctSequence} (you entered ${offerSequence})`);
       }
       
-      // STEP 2: Get wallet connection
+      // Get wallet connection
       console.log("🔍 Step 2: Connecting to wallet...");
       const session = window.crossmark?.session;
       let buyerAddress = session?.address;
@@ -89,20 +88,43 @@ export default function EscrowManagementPage() {
       }
 
       console.log("✅ Connected to wallet:", buyerAddress);
+      let conditionHex: string | undefined;
+      let fulfillmentHex: string | undefined;
+      try {
+        console.log('🔍 Fetching fulfillmentHex from server...');
+        const getFulfillmentResponse = await fetch(
+          `/api/escrow/get-fulfillment?ownerAddress=${encodeURIComponent(ownerAddress)}&offerSequence=${offerSequence}`
+        );
+        
+        if (getFulfillmentResponse.ok) {
+          const data = await getFulfillmentResponse.json();
+          fulfillmentHex = data.fulfillment.fulfillmentHex;
+          conditionHex = data.fulfillment.condition;  // ✅ Extract condition too
+          console.log('✅ Retrieved fulfillmentHex from server');
+          console.log(`   Condition: ${conditionHex?.slice(0, 20)}...`);
+          console.log(`   Fulfillment: ${fulfillmentHex?.slice(0, 20)}...`);
+        } else {
+          const error = await getFulfillmentResponse.json();
+          console.warn('⚠️ Could not fetch fulfillment:', error.error);
+        }
+      } catch (err: any) {
+        console.warn('⚠️ Error fetching fulfillment:', err.message);
+      }
       
-      // STEP 3: Create and submit EscrowFinish transaction
+      // Create and submit EscrowFinish transaction
       console.log("🔍 Step 3: Creating EscrowFinish transaction...");
       console.log("Owner (Buyer):", ownerAddress);
       console.log("Offer Sequence (CORRECT):", correctSequence);
       console.log("Finishing by:", buyerAddress);
 
-      // Create EscrowFinish transaction
-      const tx = {
+      const tx: any = {
         TransactionType: "EscrowFinish",
-        Account: buyerAddress, // Can be buyer or seller
-        Owner: ownerAddress, // The address that created the escrow (buyer)
-        OfferSequence: correctSequence, // Use the CORRECT sequence
-        Fee: "12",
+        Account: buyerAddress,
+        Owner: ownerAddress,
+        OfferSequence: correctSequence,
+        ...(fulfillmentHex && { Fulfillment: fulfillmentHex }),
+        ...(conditionHex && { Condition: conditionHex }),
+        Fee: "700",  
       };
 
       console.log("📝 EscrowFinish transaction:", JSON.stringify(tx, null, 2));
@@ -111,9 +133,18 @@ export default function EscrowManagementPage() {
       let signResult;
       console.log("🔐 Step 4: Signing and submitting transaction...");
       
-      try {
-        if (typeof window.crossmark.signAndSubmit === "function") {
-          console.log("✅ Using window.crossmark.signAndSubmit");
+       try {
+        if (typeof window.crossmark.signAndSubmitAndWait === "function") {
+          console.log("✅ Using window.crossmark.signAndSubmitAndWait");
+          signResult = await window.crossmark.signAndSubmitAndWait(tx);
+        } else if (window.crossmark.methods?.signAndSubmitAndWait) {
+          console.log("✅ Using window.crossmark.methods.signAndSubmitAndWait");
+          signResult = await window.crossmark.methods.signAndSubmitAndWait(tx);
+        } else if (window.crossmark.async?.signAndSubmitAndWait) {
+          console.log("✅ Using window.crossmark.async.signAndSubmitAndWait");
+          signResult = await window.crossmark.async.signAndSubmitAndWait(tx);
+        } else if (typeof window.crossmark.signAndSubmit === "function") {
+          console.log("✅ Using window.crossmark.signAndSubmit (fallback)");
           signResult = await window.crossmark.signAndSubmit(tx);
         } else if (window.crossmark.methods?.signAndSubmit) {
           console.log("✅ Using window.crossmark.methods.signAndSubmit");
@@ -142,27 +173,18 @@ export default function EscrowManagementPage() {
 
       console.log("✅ Transaction result:", signResult);
       console.log("📊 Full response structure:", JSON.stringify(signResult, null, 2));
-
-      // IMPORTANT: Crossmark may return:
-      // 1. Full transaction object with hash and result
-      // 2. Just a UUID (transaction submitted, need to wait for confirmation)
-      // 3. An error object (but this would throw in the catch block above)
       
       let txHash: string | undefined;
       let txResult: string | undefined;
       
-      // Check if we got a UUID response (most common with Crossmark)
+      // Check for UUID response 
       if (typeof signResult === 'string' && isUUID(signResult)) {
         console.log("⏳ Transaction submitted with UUID:", signResult);
         console.log("⏳ Waiting 3 seconds for ledger confirmation...");
         
-        // Wait a few seconds for the transaction to be processed on the ledger
         await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Now try to find the transaction
         console.log("🔍 Checking if EscrowFinish succeeded on the ledger...");
         
-        // Check if the escrow still exists - if it doesn't, the finish succeeded
         try {
           const xrpl = await import('xrpl');
           const client = new xrpl.Client('wss://s.altnet.rippletest.net:51233');
@@ -174,7 +196,6 @@ export default function EscrowManagementPage() {
             type: 'escrow',
           });
           
-          // Check if the escrow with our sequence still exists
           let escrowStillExists = false;
           for (const obj of response.result.account_objects) {
             const prevTxnID = (obj as any).PreviousTxnID;
@@ -225,7 +246,6 @@ export default function EscrowManagementPage() {
         console.log("⏳ Transaction submitted with wrapped UUID:", signResult.id);
         console.log("⏳ Waiting 3 seconds for ledger confirmation...");
         
-        // Same logic - wait and verify
         await new Promise(resolve => setTimeout(resolve, 3000));
         
         console.log("🔍 Checking if EscrowFinish succeeded on the ledger...");
@@ -316,8 +336,9 @@ export default function EscrowManagementPage() {
           return;
         }
 
-        // Extract transaction hash from the decoded response
+        // Extract transaction hash from the response
         txHash =
+          signResult?.response?.data?.resp?.result?.hash || 
           actualResponse?.hash ||
           actualResponse?.result?.hash ||
           actualResponse?.tx_json?.hash ||
@@ -327,6 +348,7 @@ export default function EscrowManagementPage() {
 
         // Extract transaction result
         txResult =
+          signResult?.response?.data?.resp?.result?.meta?.TransactionResult || 
           actualResponse?.meta?.TransactionResult ||
           actualResponse?.engine_result ||
           actualResponse?.result?.meta?.TransactionResult ||
@@ -354,7 +376,6 @@ export default function EscrowManagementPage() {
           txHash: txHash,
         });
       } else if (txHash) {
-        // Have hash but no result - shouldn't happen now with ledger query
         setResult({
           success: false,
           message: "Transaction submitted but result unknown. Please check the transaction on XRPL Explorer.",

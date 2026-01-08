@@ -10,7 +10,6 @@ export default function Header() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Use the robust Crossmark initialization hook
   const { isReady: crossmarkReady, isInstalled, error: crossmarkError } = useCrossmarkReady();
 
   const connectWallet = async () => {
@@ -27,12 +26,12 @@ export default function Header() {
       
       let address = null;
       
-      // Method 1: Check if address is already available in session
+      // Check if address is already available in session
       if (window.crossmark.session?.address) {
         address = window.crossmark.session.address;
         console.log('✅ Address found in session:', address);
       }
-      // Method 2: Try calling connect if it exists
+      // Try calling connect if it exists
       else if (typeof window.crossmark.connect === 'function') {
         const result = await window.crossmark.connect();
         console.log('Connection result:', result);
@@ -45,7 +44,7 @@ export default function Header() {
           address = window.crossmark.session.address;
         }
       }
-      // Method 3: Try sign-in methods
+      // Try sign-in methods
       else if (window.crossmark.api?.v1?.signInAndWait) {
         console.log('Trying signInAndWait...');
         const result = await window.crossmark.api.v1.signInAndWait();
@@ -56,7 +55,7 @@ export default function Header() {
         const result = await window.crossmark.methods.signInAndWait();
         address = result?.address || result?.response?.data?.address;
       }
-      // Method 4: Prompt user to manually enter address
+      // Prompt user to manually enter address
       else {
         console.warn('No known connection method found');
         alert('⚠️ Crossmark detected but connection method not recognized.\n\nPlease enter your wallet address manually:');

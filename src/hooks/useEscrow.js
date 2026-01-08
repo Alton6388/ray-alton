@@ -10,10 +10,8 @@ export function useEscrow() {
     setError(null);
 
     try {
-      // TODO: Person 1 will provide real escrow function
-      // For now, mock the escrow creation
       
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       const newEscrow = {
         id: `escrow_${Date.now()}`,
@@ -42,7 +40,6 @@ export function useEscrow() {
     setError(null);
 
     try {
-      // TODO: Person 1 will provide real finish function
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       setEscrows(prev => 
@@ -66,7 +63,6 @@ export function useEscrow() {
     setError(null);
 
     try {
-      // TODO: Person 1 will provide real cancel function
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       setEscrows(prev => 
