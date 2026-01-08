@@ -1,0 +1,46 @@
+{
+  "name": "rayandalton",
+  "version": "1.0.0",
+  "description": "---\r ## About",
+  "homepage": "https://github.com/Alton6388/ray-alton#readme",
+  "bugs": {
+    "url": "https://github.com/Alton6388/ray-alton/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alton6388/ray-alton.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "dependencies": {
+    "@crossmarkio/sdk": "^0.4.0",
+    "dotenv": "^17.2.3",
+    "five-bells-condition": "^5.0.1",
+    "lucide-react": "^0.373.0",
+    "next": "^15.0.0",
+    "react": "^18.x.x",
+    "react-dom": "^18.x.x",
+    "xrpl": "^4.5.0",
+    "xrpl-client": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0-rc",
+    "@types/react-dom": "^19.0.0-rc",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4",
+    "tailwindcss": "^3.4",
+    "typescript": "^5.6"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
